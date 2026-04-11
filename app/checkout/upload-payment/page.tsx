@@ -10,9 +10,11 @@ function UploadPaymentContent() {
   const orderId = searchParams.get('orderId');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState('bank');
   const [paymentDetails, setPaymentDetails] = useState({
     referenceNumber: '',
     bankName: '',
+    exchangeName: '',
     senderName: '',
     amount: ''
   });
@@ -39,11 +41,13 @@ function UploadPaymentContent() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          paymentDetails: {
+          paymentReceipt: {
             referenceNumber: paymentDetails.referenceNumber,
             bankName: paymentDetails.bankName,
+            exchangeName: paymentDetails.exchangeName,
             senderName: paymentDetails.senderName,
-            amount: parseInt(paymentDetails.amount)
+            amount: parseInt(paymentDetails.amount),
+            uploadedAt: new Date()
           }
         })
       });
@@ -78,27 +82,84 @@ function UploadPaymentContent() {
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">شماره پیگیری/مرجع *</label>
-            <input
-              type="text"
-              required
-              value={paymentDetails.referenceNumber}
-              onChange={(e) => setPaymentDetails({ ...paymentDetails, referenceNumber: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
+          {/* انتخاب نوع پرداخت */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-2">نوع پرداخت *</label>
+            <div className="flex gap-4">
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="bank"
+                  checked={paymentMethod === 'bank'}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="ml-2"
+                />
+                کارت به کارت
+              </label>
+              <label className="flex items-center">
+                <input
+                  type="radio"
+                  value="exchange"
+                  checked={paymentMethod === 'exchange'}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  className="ml-2"
+                />
+                حواله صرافی
+              </label>
+            </div>
           </div>
 
-          <div className="mb-4">
-            <label className="block text-sm font-medium mb-1">نام بانک *</label>
-            <input
-              type="text"
-              required
-              value={paymentDetails.bankName}
-              onChange={(e) => setPaymentDetails({ ...paymentDetails, bankName: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
-          </div>
+          {paymentMethod === 'bank' ? (
+            <>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">نام بانک *</label>
+                <input
+                  type="text"
+                  required
+                  value={paymentDetails.bankName}
+                  onChange={(e) => setPaymentDetails({ ...paymentDetails, bankName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  placeholder="مثال: بانک ملی افغانستان"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">شماره پیگیری/مرجع *</label>
+                <input
+                  type="text"
+                  required
+                  value={paymentDetails.referenceNumber}
+                  onChange={(e) => setPaymentDetails({ ...paymentDetails, referenceNumber: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  placeholder="شماره پیگیری واریز"
+                />
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">نام صرافی *</label>
+                <input
+                  type="text"
+                  required
+                  value={paymentDetails.exchangeName}
+                  onChange={(e) => setPaymentDetails({ ...paymentDetails, exchangeName: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  placeholder="مثال: صرافی حبیب"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium mb-1">شماره حواله/مرجع *</label>
+                <input
+                  type="text"
+                  required
+                  value={paymentDetails.referenceNumber}
+                  onChange={(e) => setPaymentDetails({ ...paymentDetails, referenceNumber: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  placeholder="شماره حواله صرافی"
+                />
+              </div>
+            </>
+          )}
 
           <div className="mb-4">
             <label className="block text-sm font-medium mb-1">نام واریز کننده *</label>
@@ -108,6 +169,7 @@ function UploadPaymentContent() {
               value={paymentDetails.senderName}
               onChange={(e) => setPaymentDetails({ ...paymentDetails, senderName: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="نام کامل واریز کننده"
             />
           </div>
 
@@ -119,6 +181,7 @@ function UploadPaymentContent() {
               value={paymentDetails.amount}
               onChange={(e) => setPaymentDetails({ ...paymentDetails, amount: e.target.value })}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              placeholder="مبلغ واریز شده"
             />
           </div>
 
