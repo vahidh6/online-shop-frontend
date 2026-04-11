@@ -9,9 +9,12 @@ interface Order {
   orderNumber: string;
   customerId: {
     name: string;
+    email: string;
+    phone: string;
   };
   totalAmount: number;
   status: string;
+  paymentMethod: string;
   createdAt: string;
 }
 
@@ -82,6 +85,19 @@ export default function AdminOrders() {
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
 
+  const getStatusText = (status: string) => {
+    const texts: { [key: string]: string } = {
+      pending_payment: 'در انتظار پرداخت',
+      payment_uploaded: 'رسید ارسال شده',
+      payment_verified: 'پرداخت تایید شده',
+      processing: 'در حال پردازش',
+      shipped: 'ارسال شده',
+      delivered: 'تحویل داده شده',
+      cancelled: 'لغو شده'
+    };
+    return texts[status] || status;
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -97,14 +113,15 @@ export default function AdminOrders() {
         <Link href="/admin" className="text-gray-600">← بازگشت به داشبورد</Link>
       </div>
       
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <table className="w-full">
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <table className="w-full min-w-[800px]">
           <thead className="bg-gray-100">
             <tr>
               <th className="p-3 text-right">شماره سفارش</th>
               <th className="p-3 text-right">مشتری</th>
               <th className="p-3 text-right">مبلغ</th>
               <th className="p-3 text-right">وضعیت</th>
+              <th className="p-3 text-right">روش پرداخت</th>
               <th className="p-3 text-right">تاریخ</th>
               <th className="p-3 text-right">عملیات</th>
             </tr>
@@ -114,12 +131,13 @@ export default function AdminOrders() {
               <tr key={order._id} className="border-t">
                 <td className="p-3">{order.orderNumber || order._id.slice(-8)}</td>
                 <td className="p-3">{order.customerId?.name || '-'}</td>
-                <td className="p-3">{order.totalAmount.toLocaleString()} افغانی</td>
+                <td className="p-3 font-bold text-green-600">{order.totalAmount.toLocaleString()} افغانی</td>
                 <td className="p-3">
                   <span className={`px-2 py-1 rounded-full text-xs ${getStatusBadge(order.status)}`}>
-                    {order.status}
+                    {getStatusText(order.status)}
                   </span>
                 </td>
+                <td className="p-3">{order.paymentMethod === 'cash_on_delivery' ? 'نقدی' : order.paymentMethod === 'card_to_card' ? 'کارت به کارت' : 'حواله صرافی'}</td>
                 <td className="p-3">{new Date(order.createdAt).toLocaleDateString('fa-IR')}</td>
                 <td className="p-3">
                   <select
