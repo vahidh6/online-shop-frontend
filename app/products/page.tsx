@@ -32,7 +32,7 @@ export default function ProductsPage() {
       });
   }, []);
 
-  const categories = ['همه', ...new Set(products.map(p => p.category))];
+  const categories = ['همه', ...Array.from(new Set(products.map(p => p.category)))];
   
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
