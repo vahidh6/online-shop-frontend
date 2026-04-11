@@ -15,6 +15,14 @@ interface Order {
   totalAmount: number;
   status: string;
   paymentMethod: string;
+  paymentReceipt?: {
+    referenceNumber: string;
+    bankName: string;
+    senderName: string;
+    amount: number;
+    exchangeName: string;
+    uploadedAt: string;
+  };
   createdAt: string;
 }
 
@@ -98,6 +106,15 @@ export default function AdminOrders() {
     return texts[status] || status;
   };
 
+  const getPaymentMethodText = (method: string) => {
+    const methods: { [key: string]: string } = {
+      cash_on_delivery: 'نقدی هنگام تحویل',
+      card_to_card: 'کارت به کارت',
+      exchange_hawala: 'حواله صرافی'
+    };
+    return methods[method] || method;
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -114,7 +131,7 @@ export default function AdminOrders() {
       </div>
       
       <div className="bg-white rounded-lg shadow overflow-x-auto">
-        <table className="w-full min-w-[800px]">
+        <table className="w-full min-w-[1200px]">
           <thead className="bg-gray-100">
             <tr>
               <th className="p-3 text-right">شماره سفارش</th>
@@ -122,6 +139,8 @@ export default function AdminOrders() {
               <th className="p-3 text-right">مبلغ</th>
               <th className="p-3 text-right">وضعیت</th>
               <th className="p-3 text-right">روش پرداخت</th>
+              <th className="p-3 text-right">نام صرافی/بانک</th>
+              <th className="p-3 text-right">شماره پیگیری/حواله</th>
               <th className="p-3 text-right">تاریخ</th>
               <th className="p-3 text-right">عملیات</th>
             </tr>
@@ -137,7 +156,27 @@ export default function AdminOrders() {
                     {getStatusText(order.status)}
                   </span>
                 </td>
-                <td className="p-3">{order.paymentMethod === 'cash_on_delivery' ? 'نقدی' : order.paymentMethod === 'card_to_card' ? 'کارت به کارت' : 'حواله صرافی'}</td>
+                <td className="p-3">{getPaymentMethodText(order.paymentMethod)}</td>
+                <td className="p-3">
+                  {order.paymentReceipt?.exchangeName && (
+                    <div className="text-sm">{order.paymentReceipt.exchangeName}</div>
+                  )}
+                  {order.paymentReceipt?.bankName && (
+                    <div className="text-sm">{order.paymentReceipt.bankName}</div>
+                  )}
+                  {!order.paymentReceipt?.exchangeName && !order.paymentReceipt?.bankName && (
+                    <span className="text-gray-400 text-sm">---</span>
+                  )}
+                </td>
+                <td className="p-3">
+                  {order.paymentReceipt?.referenceNumber ? (
+                    <span className="text-sm font-mono bg-gray-100 px-2 py-1 rounded">
+                      {order.paymentReceipt.referenceNumber}
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 text-sm">---</span>
+                  )}
+                </td>
                 <td className="p-3">{new Date(order.createdAt).toLocaleDateString('fa-IR')}</td>
                 <td className="p-3">
                   <select
