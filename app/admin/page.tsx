@@ -15,35 +15,33 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    
     if (!token) {
       router.push('/admin/login');
       return;
     }
-    
-    const userData = JSON.parse(user || '{}');
-    if (userData.role !== 'admin') {
-      router.push('/');
-      return;
-    }
-    
     fetchStats();
   }, [router]);
 
   const fetchStats = async () => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
+    const token = localStorage.getItem('token');
     
     try {
-      const [ordersRes, productsRes] = await Promise.all([
-        fetch(`${apiUrl}/api/orders`),
-        fetch(`${apiUrl}/api/products`)
-      ]);
-      
+      // دریافت سفارشات
+      const ordersRes = await fetch(`${apiUrl}/api/orders`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       const orders = await ordersRes.json();
+      console.log('سفارشات دریافت شده:', orders);
+      
+      // دریافت محصولات
+      const productsRes = await fetch(`${apiUrl}/api/products`);
       const products = await productsRes.json();
       
-      const revenue = orders.reduce((sum: number, order: any) => sum + order.totalAmount, 0);
+      // محاسبه درآمد (فقط سفارشات تایید شده یا تحویل داده شده)
+      const revenue = orders
+        .filter((order: any) => order.status === 'delivered' || order.status === 'payment_verified')
+        .reduce((sum: number, order: any) => sum + order.totalAmount, 0);
       
       setStats({
         totalOrders: orders.length,
