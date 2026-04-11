@@ -4,26 +4,65 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
+// دسته‌بندی‌های اصلی
+const mainCategories = [
+  'قطعات و تعمیرات موبایل',
+  'باتری و شارژ',
+  'محافظ و جانبی',
+  'صدا و تصویر',
+  'سایر'
+];
+
+// زیرمجموعه‌ها بر اساس دسته‌بندی اصلی
+const subCategoriesByMain: { [key: string]: string[] } = {
+  'قطعات و تعمیرات موبایل': [
+    'لوازم تعمیرات سخت افزاری',
+    'قطعات و آی سی موبایل',
+    'LCD و صفحه نمایش'
+  ],
+  'باتری و شارژ': [
+    'باطری موبایل',
+    'پاوربانک',
+    'شارژر و کابل'
+  ],
+  'محافظ و جانبی': [
+    'پوشش و گلس',
+    'کاور و قاب'
+  ],
+  'صدا و تصویر': [
+    'هدفون و هدست',
+    'اسپیکر همراه',
+    'MP3 و MP4 پلیر'
+  ],
+  'سایر': [
+    'ساعت هوشمند',
+    'هارد و فلش مموری',
+    'باکس و اکتیویشن',
+    'سایر'
+  ]
+};
+
 export default function NewProduct() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [selectedMainCategory, setSelectedMainCategory] = useState('');
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     price: '',
-    category: ''
+    category: '',
+    subCategory: ''
   });
 
-  const categories = [
-    'الکترونیک',
-    'پوشاک',
-    'خوراکی',
-    'آرایشی',
-    'کتاب',
-    'خانه و آشپزخانه',
-    'ورزشی',
-    'دیگر'
-  ];
+  const handleMainCategoryChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const value = e.target.value;
+    setSelectedMainCategory(value);
+    setFormData({
+      ...formData,
+      category: value,
+      subCategory: ''
+    });
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     setFormData({
@@ -50,7 +89,8 @@ export default function NewProduct() {
           name: formData.name,
           description: formData.description,
           price: parseInt(formData.price),
-          category: formData.category
+          category: formData.category,
+          subCategory: formData.subCategory || undefined
         })
       });
 
@@ -115,21 +155,39 @@ export default function NewProduct() {
             />
           </div>
           
-          <div className="mb-6">
-            <label className="block text-sm font-medium mb-1">دسته‌بندی *</label>
+          <div className="mb-4">
+            <label className="block text-sm font-medium mb-1">دسته‌بندی اصلی *</label>
             <select
               name="category"
               required
               value={formData.category}
-              onChange={handleChange}
+              onChange={handleMainCategoryChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">انتخاب دسته‌بندی</option>
-              {categories.map(cat => (
+              {mainCategories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
             </select>
           </div>
+
+          {selectedMainCategory && (
+            <div className="mb-6">
+              <label className="block text-sm font-medium mb-1">زیرمجموعه *</label>
+              <select
+                name="subCategory"
+                required
+                value={formData.subCategory}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">انتخاب زیرمجموعه</option>
+                {subCategoriesByMain[selectedMainCategory]?.map(sub => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
+              </select>
+            </div>
+          )}
           
           <button
             type="submit"
