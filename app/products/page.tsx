@@ -32,6 +32,7 @@ export default function ProductsPage() {
       });
   }, []);
 
+  // اصلاح خط - استفاده از Array.from
   const categories = ['همه', ...Array.from(new Set(products.map(p => p.category)))];
   
   const filteredProducts = products.filter(product => {
@@ -52,7 +53,6 @@ export default function ProductsPage() {
     <div className="container-custom py-8">
       <h1 className="text-3xl font-bold text-gray-800 mb-6">🛍️ همه محصولات</h1>
       
-      {/* جستجو و فیلتر */}
       <div className="flex flex-wrap gap-4 mb-8">
         <input
           type="text"
@@ -73,10 +73,8 @@ export default function ProductsPage() {
         </select>
       </div>
 
-      {/* تعداد محصولات */}
       <p className="text-gray-600 mb-4">{filteredProducts.length} محصول یافت شد</p>
 
-      {/* لیست محصولات */}
       {filteredProducts.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <p className="text-gray-500">هیچ محصولی یافت نشد</p>
