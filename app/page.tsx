@@ -43,7 +43,7 @@ export default function Home() {
     siteDescription: 'بزرگترین فروشگاه تخصصی در افغانستان',
     phone: '0799364841 ',
     email: 'info@advance.af',
-    address: 'هرات افغانستان',
+    address: 'کابل، افغانستان',
     workingHours: 'شنبه تا پنجشنبه ۹:۰۰ - ۱۷:۰۰',
     facebook: '',
     instagram: '',
