@@ -36,11 +36,11 @@ interface Settings {
 
 // لیست دسته‌بندی‌ها
 const categoriesList = [
-  { id: 1, name: 'قطعات و تعمیرات موبایل', icon: '🔧', color: '#3b82f6' },
-  { id: 2, name: 'باتری و شارژ', icon: '🔋', color: '#10b981' },
-  { id: 3, name: 'محافظ و جانبی', icon: '🛡️', color: '#f59e0b' },
-  { id: 4, name: 'صدا و تصویر', icon: '🎧', color: '#8b5cf6' },
-  { id: 5, name: 'سایر', icon: '📦', color: '#6b7280' },
+  { id: 1, name: 'قطعات و تعمیرات موبایل', icon: '🔧' },
+  { id: 2, name: 'باتری و شارژ', icon: '🔋' },
+  { id: 3, name: 'محافظ و جانبی', icon: '🛡️' },
+  { id: 4, name: 'صدا و تصویر', icon: '🎧' },
+  { id: 5, name: 'سایر', icon: '📦' },
 ];
 
 export default function Home() {
@@ -48,7 +48,6 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('همه');
   const [settings, setSettings] = useState<Settings>({
     siteName: 'شرکت همراه افغان',
     siteDescription: 'بزرگترین فروشگاه تخصصی در افغانستان',
@@ -70,18 +69,20 @@ export default function Home() {
     maintenanceMessage: 'در حال بروزرسانی، به زودی بازمی‌گردیم'
   });
 
-  // اسکرول افقی با دکمه‌های قبلی/بعدی
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  // رفرنس برای اسکرول هر دسته
+  const scrollRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
-  const scrollLeft = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: -300, behavior: 'smooth' });
+  const scrollLeft = (categoryId: number) => {
+    const container = scrollRefs.current[`scroll-${categoryId}`];
+    if (container) {
+      container.scrollBy({ left: -320, behavior: 'smooth' });
     }
   };
 
-  const scrollRight = () => {
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollBy({ left: 300, behavior: 'smooth' });
+  const scrollRight = (categoryId: number) => {
+    const container = scrollRefs.current[`scroll-${categoryId}`];
+    if (container) {
+      container.scrollBy({ left: 320, behavior: 'smooth' });
     }
   };
 
@@ -125,11 +126,18 @@ export default function Home() {
       });
   }, []);
 
-  // گروه‌بندی محصولات بر اساس دسته‌بندی
-  const productsByCategory = categoriesList.map(cat => ({
-    ...cat,
-    products: products.filter(p => p.category === cat.name).slice(0, 6)
-  })).filter(cat => cat.products.length > 0);
+  // گروه‌بندی محصولات بر اساس دسته‌بندی و تصادفی کردن داخل هر دسته
+  const productsByCategory = categoriesList
+    .map(cat => {
+      const categoryProducts = products.filter(p => p.category === cat.name);
+      // تصادفی کردن محصولات هر دسته
+      const shuffledProducts = [...categoryProducts].sort(() => 0.5 - Math.random());
+      return {
+        ...cat,
+        products: shuffledProducts
+      };
+    })
+    .filter(cat => cat.products.length > 0);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -208,11 +216,11 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* نمایش محصولات به صورت دسته‌بندی افقی */}
+        {/* نمایش محصولات به صورت دسته‌بندی افقی با اسکرول تصادفی */}
         {productsByCategory.map((category) => (
           <div key={category.id} className="mb-12">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-gray-800 pr-3 border-r-4 flex items-center gap-2" style={{ borderRightColor: category.color }}>
+              <h2 className="text-2xl font-bold text-gray-800 pr-3 border-r-4 flex items-center gap-2" style={{ borderRightColor: settings.primaryColor }}>
                 <span>{category.icon}</span>
                 <span>{category.name}</span>
               </h2>
@@ -221,20 +229,20 @@ export default function Home() {
               </Link>
             </div>
             
-            {/* اسلایدر افقی با دکمه‌های قبلی/بعدی */}
             <div className="relative group">
+              {/* دکمه اسکرول به چپ */}
               <button
-                onClick={scrollLeft}
+                onClick={() => scrollLeft(category.id)}
                 className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-100"
-                style={{ display: scrollContainerRef.current?.scrollWidth > scrollContainerRef.current?.clientWidth ? 'block' : 'none' }}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
               
+              {/* کانتینر اسکرول افقی */}
               <div
-                ref={scrollContainerRef}
+                ref={(el) => { scrollRefs.current[`scroll-${category.id}`] = el; }}
                 className="flex overflow-x-auto gap-6 pb-4 scrollbar-hide"
                 style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
               >
@@ -261,6 +269,9 @@ export default function Home() {
                     <div className="p-4 flex flex-col flex-grow">
                       <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 min-h-[48px]">{product.name}</h3>
                       <div className="text-xl font-bold text-green-600 mb-2">{product.price.toLocaleString()} افغانی</div>
+                      <div className="inline-block bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600 mb-3 w-fit">
+                        {product.category}
+                      </div>
                       <Link 
                         href={`/products/${product._id}`} 
                         className="block text-center text-white py-2 rounded-lg transition mt-auto" 
@@ -275,8 +286,9 @@ export default function Home() {
                 ))}
               </div>
               
+              {/* دکمه اسکرول به راست */}
               <button
-                onClick={scrollRight}
+                onClick={() => scrollRight(category.id)}
                 className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-100"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
