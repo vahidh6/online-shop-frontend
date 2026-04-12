@@ -54,7 +54,7 @@ export default function Home() {
     freeDeliveryThreshold: 0,
     primaryColor: '#e53e3e',
     secondaryColor: '#3182ce',
-    footerText: '© 2026 شرکت تجارتی ادوانس - تمامی حقوق محفوظ است',
+    footerText: '© 2026 شرکت همراه افغان - تمامی حقوق محفوظ است',
     isMaintenance: false,
     maintenanceMessage: 'در حال بروزرسانی، به زودی بازمی‌گردیم'
   });
