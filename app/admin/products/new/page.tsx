@@ -41,60 +41,25 @@ const subCategoriesByMain: { [key: string]: string[] } = {
   ]
 };
 
-// ==================== ولایات افغانستان ====================
-const provinces = [
-  'کابل', 'کاپیسا', 'پروان', 'میدان وردک', 'لوگر', 'بغلان', 'سمنگان', 'بلخ',
-  'جوزجان', 'فاریاب', 'سرپل', 'قندوز', 'تخار', 'بدخشان', 'نورستان', 'کنر',
-  'لغمان', 'ننگرهار', 'کندهار', 'زابل', 'ارزگان', 'غزنی', 'پکتیا', 'پکتیکا',
-  'خوست', 'بامیان', 'دایکندی', 'غور', 'هرات', 'بادغیس', 'فراه', 'نیمروز',
-  'هلمند', 'پنجشیر'
-];
+interface Province {
+  _id: string;
+  name: string;
+  nameEn: string;
+  code: string;
+}
 
-// ==================== ولسوالی‌های افغانستان ====================
-const districtsByProvince: { [key: string]: string[] } = {
-  'کابل': ['کابل مرکز', 'پغمان', 'چهار آسیاب', 'ده سبز', 'کلکان', 'قلعه نادر', 'موسهی', 'میربچه کوت', 'استاليف', 'گلدره', 'خاک جبار', 'فرزه', 'شکردره', 'بگرامی'],
-  'هرات': ['هرات مرکز', 'انجیل', 'گذره', 'کرخ', 'کشک کهنه', 'کشک رباط سنگی', 'ادرسکن', 'زنده جان', 'چشت شریف', 'فارسی', 'غوریان', 'اوبه', 'پشتون زرغون'],
-  'مزارشریف': ['مزارشریف مرکز', 'نهر شاهی', 'دهدادی', 'چمتال', 'چارکنت', 'شولگره', 'زاری', 'کشم', 'بلخ'],
-  'قندهار': ['قندهار مرکز', 'ارغستان', 'ارغنداب', 'دامان', 'ژری', 'خاکریز', 'معروف', 'میوند', 'نش', 'پنجوایی', 'شاه ولی کوت', 'سپین بولدک', 'تخته پل'],
-  'ننگرهار': ['جلال آباد مرکز', 'بهسود', 'چپر هار', 'دره نور', 'خوگیانی', 'کوز کنر', 'لال پور', 'مومند دره', 'نازیان', 'پچیر او اگام', 'رودات', 'شیرزاد', 'سرخرود', 'هسکه مینه'],
-  'غزنی': ['غزنی مرکز', 'اب بند', 'اجرستان', 'اندر', 'بگرامی', 'ده یک', 'جاغوری', 'خواجه عمری', 'مالستان', 'مقر', 'ناور', 'نانی', 'رزان', 'زنه خان', 'گلان', 'گیرو'],
-  'بامیان': ['بامیان مرکز', 'پنجاب', 'کمرد', 'سایگان', 'شبر', 'ورس', 'یکاولنگ', 'کهمرد'],
-  'بلخ': ['مزارشریف مرکز', 'چهاربولک', 'چمتال', 'چارکنت', 'چاربولک', 'دهدادی', 'کلدار', 'خلم', 'کشنده', 'مارمل', 'نهر شاهی', 'شولگره', 'زاری', 'بلخ'],
-  'بدخشان': ['فیض آباد مرکز', 'ارغنج خواه', 'ارگو', 'بهارک', 'درایم', 'فیض آباد', 'اشکاشم', 'جرم', 'خاش', 'خواهان', 'کشم', 'کهان', 'کران و منجان', 'راغستان', 'شهر بزرگ', 'شفنان', 'شکی', 'شهدا', 'تگاب', 'تاشکان', 'واخان', 'وردوج', 'یفتل پایین', 'زون', 'مایمی'],
-  'پنجشیر': ['بازارک مرکز', 'انابه', 'پریان', 'رخه', 'شوتل', 'عبدالله خیل', 'دره', 'هساول'],
-  'کندهار': ['کندهار مرکز', 'ارغستان', 'ارغنداب', 'دامان', 'ژری', 'خاکریز', 'معروف', 'میوند', 'نش', 'پنجوایی', 'شاه ولی کوت', 'سپین بولدک', 'تخته پل'],
-  'هرات': ['هرات مرکز', 'انجیل', 'گذره', 'کرخ', 'کشک کهنه', 'کشک رباط سنگی', 'ادرسکن', 'زنده جان', 'چشت شریف', 'فارسی', 'غوریان', 'اوبه', 'پشتون زرغون'],
-  'کاپیسا': ['کاپیسا مرکز', 'تگاب', 'حصه اول کوهستان', 'حصه دوم کوهستان', 'نijrab'],
-  'پروان': ['چاریکار مرکز', 'شیخ علی', 'سیدخیل', 'سلف', 'گروان', 'شوتو', 'جبل سراج', 'بگرام', 'کهنه صافی', 'سرخ پارسا'],
-  'میدان وردک': ['میدان شهر مرکز', 'جلریز', 'چک', 'حصه اول بهسود', 'حصه دوم بهسود', 'نرخ', 'سیدآباد', 'جغتو'],
-  'لوگر': ['پل علم مرکز', 'برکی برک', 'خروار', 'محمد آغه', 'خوشی', 'ازره'],
-  'بغلان': ['پل خمری مرکز', 'بغلان مرکز', 'خنجان', 'ده صلاح', 'نهرین', 'برکه', 'گوزرگه نور', 'تاله و برفک', 'پل حصار', 'دوشی', 'بغلان جدید', 'فرنگ و غارو'],
-  'سمنگان': ['ایبک مرکز', 'حضرت سلطان', 'خرم و سارباغ', 'دره صوف بالا', 'دره صوف پایین', 'روی دوآب', 'فیروز نخچیر'],
-  'جوزجان': ['شبرغان مرکز', 'منگه جک', 'خماب', 'قرقین', 'مردیان', 'آقچه', 'درزاب'],
-  'فاریاب': ['میمنه مرکز', 'المار', 'اندخوی', 'خان چارباغ', 'قرغان', 'کوهستان', 'گرزیوان', 'پشتون کوت', 'شیرین تگاب', 'دولت آباد', 'بلچراغ', 'قرم قلعه'],
-  'سرپل': ['سرپل مرکز', 'بلخاب', 'سوزمه قلعه', 'کوهستانات', 'سانچارک', 'گوشتی'],
-  'قندوز': ['قندوز مرکز', 'چاه آب', 'خان آباد', 'امام صاحب', 'علی آباد', 'دشت ارچی', 'قلعه ذال'],
-  'تخار': ['تالقان مرکز', 'چاه آب', 'خواجه بهاالدین', 'خواجه غار', 'درقد', 'ورسج', 'اشکمش', 'فرخار', 'کلافگان', 'بنگری', 'نمک آب', 'رستاق', 'یفتل پایین', 'یفتل بالا'],
-  'نورستان': ['پرون مرکز', 'وایگل', 'کامدیش', 'دوآب', 'نورستان', 'مندول'],
-  'کنر': ['اسدآباد مرکز', 'مره وری', 'نرنگ', 'دره پیچ', 'سرکانی', 'چپه دره', 'چوکی', 'شل تن', 'خاص کنر', 'ناری', 'واپه'],
-  'لغمان': ['مهترلام مرکز', 'قرغه ای', 'علی سنگ', 'دولت شاه', 'چهارباغ'],
-  'زابل': ['قلات مرکز', 'شهر صفا', 'شینکی', 'میزان', 'کجران', 'ترنک و جلدک', 'دای چوپان', 'بابکرک', 'ارغنداب'],
-  'ارزگان': ['ترین کوت مرکز', 'چوره', 'خاص ارزگان', 'دهراوود', 'گیرو', 'خدر', 'نیش', 'شهید حساس'],
-  'پکتیا': ['گردیز مرکز', 'احمدآباد', 'لجه احمدخیل', 'روحانی بابا', 'ذدران', 'جاجی', 'سیدکرم', 'علی شیر علیا', 'حمزیه', 'جانی خیل', 'چمکنی', 'زرگران', 'شواک'],
-  'پکتیکا': ['شرانه مرکز', 'ارگون', 'اورگون', 'برمل', 'جانی خیل', 'تروه', 'یوسف خیل', 'زرغون شهر', 'ملی خیل', 'نیکه', 'وازه خوا', 'سروبی', 'دله', 'گو مل', 'گومل'],
-  'خوست': ['خوست مرکز', 'باک', 'تنی', 'تیریزایی', 'جانی خیل', 'سپیره', 'شمل', 'قبندر', 'ملا خیل', 'مندوزایی', 'نادرشاه کوت', 'اسماعیل خیل', 'لک کوت', 'گو لی', 'یعقوبی'],
-  'دایکندی': ['نیلی مرکز', 'اشترلی', 'پاتو', 'خادر', 'کجران', 'میرامور', 'شهرستانی', 'سنگ تخت', 'گیزاب', 'هیدو'],
-  'غور': ['چغچران مرکز', 'شهرک', 'دولت یار', 'دوله نه', 'پسابند', 'ساغر', 'لعل و سر جنگل', 'تایور', 'چهارسده'],
-  'بادغیس': ['قلعه نو مرکز', 'بالامرغاب', 'غورماچ', 'مقر', 'جوند', 'آب کمری'],
-  'فراه': ['فراه مرکز', 'پشت رود', 'پر چمن', 'بکوا', 'لاش و جوین', 'اناردره', 'شیب کوه', 'قلعه کاه'],
-  'نیمروز': ['زرنج مرکز', 'چهاربرجک', 'خاشرود', 'کنگ', 'دلارام', 'سرسنگ'],
-  'هلمند': ['لشکرگاه مرکز', 'نوزاد', 'باغران', 'گرمسیر', 'ناوه بارکزئی', 'سنگین', 'نادعلی', 'دیشو', 'نهرسراج', 'موسی قلعه', 'واشیر', 'کجکی']
-};
+interface District {
+  _id: string;
+  name: string;
+  provinceId: string;
+}
 
 export default function NewProduct() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [selectedMainCategory, setSelectedMainCategory] = useState('');
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
   const [selectedProvince, setSelectedProvince] = useState('');
   const [inventory, setInventory] = useState<{ [key: string]: number }>({});
   
@@ -105,23 +70,47 @@ export default function NewProduct() {
     category: '',
     subCategory: '',
     province: '',
+    provinceId: '',
     district: '',
     address: ''
   });
 
-  // مقداردهی اولیه موجودی برای همه ولایات
+  // دریافت ولایت‌ها
   useEffect(() => {
-    const initialInventory: { [key: string]: number } = {};
-    provinces.forEach(province => {
-      initialInventory[province] = 0;
-    });
-    setInventory(initialInventory);
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
+    
+    fetch(`${apiUrl}/api/locations/provinces`)
+      .then(res => res.json())
+      .then(data => {
+        setProvinces(data);
+        // مقداردهی اولیه موجودی برای همه ولایت‌ها
+        const initialInventory: { [key: string]: number } = {};
+        data.forEach((province: Province) => {
+          initialInventory[province.name] = 0;
+        });
+        setInventory(initialInventory);
+      })
+      .catch(err => console.error('Error fetching provinces:', err));
   }, []);
 
-  const handleInventoryChange = (province: string, value: number) => {
+  // دریافت ولسوالی‌ها بر اساس ولایت انتخاب شده
+  useEffect(() => {
+    if (selectedProvince) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
+      
+      fetch(`${apiUrl}/api/locations/districts/${selectedProvince}`)
+        .then(res => res.json())
+        .then(data => setDistricts(data))
+        .catch(err => console.error('Error fetching districts:', err));
+    } else {
+      setDistricts([]);
+    }
+  }, [selectedProvince]);
+
+  const handleInventoryChange = (provinceName: string, value: number) => {
     setInventory({
       ...inventory,
-      [province]: value
+      [provinceName]: value
     });
   };
 
@@ -136,12 +125,23 @@ export default function NewProduct() {
   };
 
   const handleProvinceSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const value = e.target.value;
-    setSelectedProvince(value);
+    const provinceId = e.target.value;
+    const province = provinces.find(p => p._id === provinceId);
+    setSelectedProvince(provinceId);
     setFormData({
       ...formData,
-      province: value,
+      province: province?.name || '',
+      provinceId: provinceId,
       district: ''
+    });
+  };
+
+  const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const districtId = e.target.value;
+    const district = districts.find(d => d._id === districtId);
+    setFormData({
+      ...formData,
+      district: district?.name || ''
     });
   };
 
@@ -172,7 +172,10 @@ export default function NewProduct() {
           description: formData.description,
           price: parseInt(formData.price),
           category: formData.category,
-          subCategory: formData.subCategory || undefined
+          subCategory: formData.subCategory || undefined,
+          sellerProvince: formData.province,
+          sellerDistrict: formData.district,
+          sellerAddress: formData.address
         })
       });
 
@@ -185,7 +188,7 @@ export default function NewProduct() {
 
       // 2. اضافه کردن موجودی برای هر ولایت
       for (const province of provinces) {
-        const quantity = inventory[province] || 0;
+        const quantity = inventory[province.name] || 0;
         if (quantity > 0) {
           await fetch(`${apiUrl}/api/products/inventory/${product._id}`, {
             method: 'PUT',
@@ -194,7 +197,7 @@ export default function NewProduct() {
               'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
-              province: province,
+              province: province.name,
               quantity: quantity
             })
           });
@@ -302,12 +305,12 @@ export default function NewProduct() {
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-96 overflow-y-auto">
               {provinces.map(province => (
-                <div key={province}>
-                  <label className="block text-sm font-medium mb-1">{province}</label>
+                <div key={province._id}>
+                  <label className="block text-sm font-medium mb-1">{province.name}</label>
                   <input
                     type="number"
-                    value={inventory[province] || 0}
-                    onChange={(e) => handleInventoryChange(province, parseInt(e.target.value) || 0)}
+                    value={inventory[province.name] || 0}
+                    onChange={(e) => handleInventoryChange(province.name, parseInt(e.target.value) || 0)}
                     className="w-full px-2 py-1 border border-gray-300 rounded-lg"
                     min="0"
                   />
@@ -323,32 +326,34 @@ export default function NewProduct() {
             <div className="mb-4">
               <label className="block text-sm font-medium mb-1">ولایت *</label>
               <select
-                name="province"
-                required
-                value={formData.province}
+                value={selectedProvince}
                 onChange={handleProvinceSelect}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                required
               >
                 <option value="">انتخاب ولایت</option>
-                {provinces.map(prov => (
-                  <option key={prov} value={prov}>{prov}</option>
+                {provinces.map(province => (
+                  <option key={province._id} value={province._id}>
+                    {province.name}
+                  </option>
                 ))}
               </select>
             </div>
 
-            {selectedProvince && districtsByProvince[selectedProvince] && (
+            {selectedProvince && districts.length > 0 && (
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-1">ولسوالی *</label>
                 <select
-                  name="district"
-                  required
                   value={formData.district}
-                  onChange={handleChange}
+                  onChange={handleDistrictChange}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                  required
                 >
                   <option value="">انتخاب ولسوالی</option>
-                  {districtsByProvince[selectedProvince].map(dist => (
-                    <option key={dist} value={dist}>{dist}</option>
+                  {districts.map(district => (
+                    <option key={district._id} value={district._id}>
+                      {district.name}
+                    </option>
                   ))}
                 </select>
               </div>
