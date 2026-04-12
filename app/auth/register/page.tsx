@@ -1,13 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+
+interface Province {
+  _id: string;
+  name: string;
+  nameEn: string;
+  code: string;
+}
+
+interface District {
+  _id: string;
+  name: string;
+  provinceId: string;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [provinces, setProvinces] = useState<Province[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [selectedProvince, setSelectedProvince] = useState('');
+  
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -15,14 +32,61 @@ export default function RegisterPage() {
     password: '',
     confirmPassword: '',
     province: '',
-    city: '',
+    provinceId: '',
+    district: '',
     address: ''
   });
 
-  const provinces = ['کابل', 'هرات', 'مزارشریف', 'قندهار', 'بلخ', 'ننگرهار', 'بامیان', 'دیگر'];
+  // دریافت ولایت‌ها
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
+    
+    fetch(`${apiUrl}/api/locations/provinces`)
+      .then(res => res.json())
+      .then(data => setProvinces(data))
+      .catch(err => console.error('Error fetching provinces:', err));
+  }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  // دریافت ولسوالی‌ها بر اساس ولایت انتخاب شده
+  useEffect(() => {
+    if (selectedProvince) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
+      
+      fetch(`${apiUrl}/api/locations/districts/${selectedProvince}`)
+        .then(res => res.json())
+        .then(data => setDistricts(data))
+        .catch(err => console.error('Error fetching districts:', err));
+    } else {
+      setDistricts([]);
+    }
+  }, [selectedProvince]);
+
+  const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const provinceId = e.target.value;
+    const province = provinces.find(p => p._id === provinceId);
+    setSelectedProvince(provinceId);
+    setFormData({
+      ...formData,
+      province: province?.name || '',
+      provinceId: provinceId,
+      district: ''
+    });
+  };
+
+  const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const districtId = e.target.value;
+    const district = districts.find(d => d._id === districtId);
+    setFormData({
+      ...formData,
+      district: district?.name || ''
+    });
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
     setError('');
   };
 
@@ -54,7 +118,8 @@ export default function RegisterPage() {
           phone: formData.phone,
           password: formData.password,
           province: formData.province,
-          city: formData.city,
+          provinceId: formData.provinceId,
+          district: formData.district,
           address: formData.address,
           role: 'customer'
         })
@@ -100,6 +165,7 @@ export default function RegisterPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
+          
           <div className="mb-3">
             <input
               type="email"
@@ -111,6 +177,7 @@ export default function RegisterPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
+          
           <div className="mb-3">
             <input
               type="tel"
@@ -122,30 +189,41 @@ export default function RegisterPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
+          
           <div className="mb-3">
             <select
-              name="province"
-              required
-              value={formData.province}
-              onChange={handleChange}
+              value={selectedProvince}
+              onChange={handleProvinceChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+              required
             >
               <option value="">انتخاب ولایت</option>
-              {provinces.map(prov => (
-                <option key={prov} value={prov}>{prov}</option>
+              {provinces.map(province => (
+                <option key={province._id} value={province._id}>
+                  {province.name}
+                </option>
               ))}
             </select>
           </div>
-          <div className="mb-3">
-            <input
-              type="text"
-              name="city"
-              placeholder="شهر/ولسوالی"
-              value={formData.city}
-              onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-            />
-          </div>
+
+          {selectedProvince && (
+            <div className="mb-3">
+              <select
+                value={formData.district}
+                onChange={handleDistrictChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                required
+              >
+                <option value="">انتخاب ولسوالی</option>
+                {districts.map(district => (
+                  <option key={district._id} value={district._id}>
+                    {district.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          
           <div className="mb-3">
             <textarea
               name="address"
@@ -157,6 +235,7 @@ export default function RegisterPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
+          
           <div className="mb-3">
             <input
               type="password"
@@ -168,6 +247,7 @@ export default function RegisterPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
+          
           <div className="mb-4">
             <input
               type="password"
@@ -179,6 +259,7 @@ export default function RegisterPage() {
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
             />
           </div>
+          
           <button
             type="submit"
             disabled={loading}
