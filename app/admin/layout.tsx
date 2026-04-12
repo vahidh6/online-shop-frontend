@@ -24,7 +24,7 @@ export default function AdminLayout({
 
     // بررسی توکن
     if (!token) {
-      router.push('/admin/login');
+      router.replace('/');
       return;
     }
 
@@ -32,12 +32,11 @@ export default function AdminLayout({
     try {
       const userData = JSON.parse(user || '{}');
       if (userData.role !== 'admin') {
-        // به جای خطا، به صفحه اصلی هدایت کن
-        router.push('/');
+        router.replace('/');
         return;
       }
     } catch (e) {
-      router.push('/');
+      router.replace('/');
       return;
     } finally {
       setLoading(false);
@@ -45,11 +44,7 @@ export default function AdminLayout({
   }, [router, pathname]);
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return null; // یا یک لودینگ ساده
   }
 
   // صفحه لاگین
