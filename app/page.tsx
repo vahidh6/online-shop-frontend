@@ -122,20 +122,14 @@ export default function Home() {
       });
   }, []);
 
-  // فیلتر و مرتب‌سازی محصولات
+  // فیلتر محصولات
   const filteredProducts = products.filter(product => {
-    // فیلتر دسته‌بندی
     const matchesCategory = selectedCategory === 'همه' || product.category === selectedCategory;
-    
-    // فیلتر جستجو
     const matchesSearch = searchTerm === '' || 
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    // فیلتر محدوده قیمت
     const matchesPrice = (priceRange.min === '' || product.price >= Number(priceRange.min)) &&
                          (priceRange.max === '' || product.price <= Number(priceRange.max));
-    
     return matchesCategory && matchesSearch && matchesPrice;
   });
 
@@ -250,7 +244,6 @@ export default function Home() {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full px-5 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 pr-12"
-                  style={{ focusRingColor: settings.primaryColor }}
                 />
                 <span className="absolute left-3 top-3 text-gray-400 text-xl">🔍</span>
               </div>
@@ -368,7 +361,7 @@ export default function Home() {
                         e.currentTarget.style.display = 'none';
                         const parent = e.currentTarget.parentElement;
                         if (parent) {
-                          parent.innerHTML = '<span class="text-6xl">📦</span>';
+                          parent.innerHTML = '<span className="text-6xl">📦</span>';
                         }
                       }}
                     />
