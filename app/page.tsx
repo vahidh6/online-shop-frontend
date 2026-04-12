@@ -19,6 +19,13 @@ interface Settings {
   email: string;
   address: string;
   workingHours: string;
+  facebook: string;
+  instagram: string;
+  telegram: string;
+  whatsapp: string;
+  deliveryFeeKabul: number;
+  deliveryFeeOther: number;
+  freeDeliveryThreshold: number;
   primaryColor: string;
   secondaryColor: string;
   footerText: string;
@@ -34,10 +41,17 @@ export default function Home() {
   const [settings, setSettings] = useState<Settings>({
     siteName: 'شرکت همراه افغان',
     siteDescription: 'بزرگترین فروشگاه تخصصی در افغانستان',
-    phone: '۰۷۹۹ ۱۲۳ ۴۵۶۷',
+    phone: '0799364841 ',
     email: 'info@advance.af',
-    address: 'کابل، افغانستان',
+    address: 'هرات افغانستان',
     workingHours: 'شنبه تا پنجشنبه ۹:۰۰ - ۱۷:۰۰',
+    facebook: '',
+    instagram: '',
+    telegram: '',
+    whatsapp: '',
+    deliveryFeeKabul: 50000,
+    deliveryFeeOther: 100000,
+    freeDeliveryThreshold: 0,
     primaryColor: '#e53e3e',
     secondaryColor: '#3182ce',
     footerText: '© 2026 شرکت همراه افغان - تمامی حقوق محفوظ است',
@@ -157,8 +171,17 @@ export default function Home() {
         </div>
       </header>
 
-      {/* محتوای اصلی - بدون Hero Section */}
+      {/* محتوای اصلی */}
       <main className="container-custom py-8">
+        {/* Hero Section */}
+        <div className="rounded-2xl p-12 text-center text-white mb-12" style={{ background: `linear-gradient(135deg, ${settings.primaryColor} 0%, ${settings.secondaryColor} 100%)` }}>
+          <h1 className="text-4xl font-bold mb-4">🏢 به {settings.siteName} خوش آمدید!</h1>
+          <p className="text-xl mb-6">{settings.siteDescription}</p>
+          <Link href="/products" className="bg-orange-500 hover:bg-orange-600 px-8 py-3 rounded-full font-bold inline-block transition">
+            شروع خرید
+          </Link>
+        </div>
+
         {/* محصولات */}
         <h2 className="text-2xl font-bold text-gray-800 mb-6 pr-3 border-r-4" style={{ borderRightColor: settings.primaryColor }}>
           آخرین محصولات
