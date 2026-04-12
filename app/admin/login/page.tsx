@@ -38,10 +38,13 @@ export default function AdminLogin() {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         
+        // بررسی نقش ادمین
         if (data.user.role === 'admin') {
           router.push('/admin');
         } else {
           setError('شما دسترسی ادمین ندارید');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
         }
       } else {
         setError(data.message || 'ایمیل یا رمز عبور اشتباه است');
