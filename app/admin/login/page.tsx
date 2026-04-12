@@ -15,18 +15,26 @@ export default function AdminLogin() {
 
   // اگر قبلاً لاگین کرده، به پنل ادمین هدایت شو
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-    
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        if (user.role === 'admin') {
-          router.replace('/admin');
-          return;
+    // با setTimeout مطمئن می‌شویم که در سمت کلاینت اجرا شود
+    setTimeout(() => {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      
+      console.log('Checking existing login...', { token: !!token, userStr: !!userStr });
+      
+      if (token && userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          if (user.role === 'admin') {
+            console.log('User is admin, redirecting to /admin');
+            router.replace('/admin');
+            return;
+          }
+        } catch(e) {
+          console.error('Error parsing user:', e);
         }
-      } catch(e) {}
-    }
+      }
+    }, 50);
   }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
