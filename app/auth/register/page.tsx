@@ -23,7 +23,8 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [provinces, setProvinces] = useState<Province[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
-  const [selectedProvince, setSelectedProvince] = useState('');
+  const [selectedProvinceId, setSelectedProvinceId] = useState('');
+  const [selectedDistrictId, setSelectedDistrictId] = useState('');
   
   const [formData, setFormData] = useState({
     name: '',
@@ -49,22 +50,23 @@ export default function RegisterPage() {
 
   // دریافت ولسوالی‌ها بر اساس ولایت انتخاب شده
   useEffect(() => {
-    if (selectedProvince) {
+    if (selectedProvinceId) {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
       
-      fetch(`${apiUrl}/api/locations/districts/${selectedProvince}`)
+      fetch(`${apiUrl}/api/locations/districts/${selectedProvinceId}`)
         .then(res => res.json())
         .then(data => setDistricts(data))
         .catch(err => console.error('Error fetching districts:', err));
     } else {
       setDistricts([]);
     }
-  }, [selectedProvince]);
+  }, [selectedProvinceId]);
 
   const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const provinceId = e.target.value;
     const province = provinces.find(p => p._id === provinceId);
-    setSelectedProvince(provinceId);
+    setSelectedProvinceId(provinceId);
+    setSelectedDistrictId(''); //重置 ولسوالی
     setFormData({
       ...formData,
       province: province?.name || '',
@@ -76,6 +78,7 @@ export default function RegisterPage() {
   const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const districtId = e.target.value;
     const district = districts.find(d => d._id === districtId);
+    setSelectedDistrictId(districtId);
     setFormData({
       ...formData,
       district: district?.name || ''
@@ -192,7 +195,7 @@ export default function RegisterPage() {
           
           <div className="mb-3">
             <select
-              value={selectedProvince}
+              value={selectedProvinceId}
               onChange={handleProvinceChange}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg"
               required
@@ -206,10 +209,10 @@ export default function RegisterPage() {
             </select>
           </div>
 
-          {selectedProvince && (
+          {selectedProvinceId && (
             <div className="mb-3">
               <select
-                value={formData.district}
+                value={selectedDistrictId}
                 onChange={handleDistrictChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg"
                 required
