@@ -32,13 +32,12 @@ export default function AdminDashboard() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const orders = await ordersRes.json();
-      console.log('سفارشات دریافت شده:', orders);
       
       // دریافت محصولات
       const productsRes = await fetch(`${apiUrl}/api/products`);
       const products = await productsRes.json();
       
-      // محاسبه درآمد (فقط سفارشات تایید شده یا تحویل داده شده)
+      // محاسبه درآمد
       const revenue = orders
         .filter((order: any) => order.status === 'delivered' || order.status === 'payment_verified')
         .reduce((sum: number, order: any) => sum + order.totalAmount, 0);
@@ -81,6 +80,7 @@ export default function AdminDashboard() {
       </div>
       
       <div className="container-custom py-8">
+        {/* آمار کارت‌ها */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <div className="bg-white rounded-lg shadow p-6 text-center">
             <div className="text-4xl mb-2">📦</div>
@@ -99,14 +99,19 @@ export default function AdminDashboard() {
           </div>
         </div>
         
-        <div className="grid md:grid-cols-2 gap-6">
-          <Link href="/admin/products" className="bg-blue-600 text-white p-6 rounded-lg text-center hover:bg-blue-700">
+        {/* منوی مدیریت */}
+        <div className="grid md:grid-cols-3 gap-6">
+          <Link href="/admin/products" className="bg-blue-600 text-white p-6 rounded-lg text-center hover:bg-blue-700 transition">
             <div className="text-3xl mb-2">📦</div>
             <div className="font-bold">مدیریت محصولات</div>
           </Link>
-          <Link href="/admin/orders" className="bg-green-600 text-white p-6 rounded-lg text-center hover:bg-green-700">
+          <Link href="/admin/orders" className="bg-green-600 text-white p-6 rounded-lg text-center hover:bg-green-700 transition">
             <div className="text-3xl mb-2">📋</div>
             <div className="font-bold">مدیریت سفارشات</div>
+          </Link>
+          <Link href="/admin/settings" className="bg-purple-600 text-white p-6 rounded-lg text-center hover:bg-purple-700 transition">
+            <div className="text-3xl mb-2">⚙️</div>
+            <div className="font-bold">تنظیمات سایت</div>
           </Link>
         </div>
       </div>
