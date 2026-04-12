@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -12,6 +12,22 @@ export default function AdminLogin() {
     email: '',
     password: ''
   });
+
+  // اگر قبلاً لاگین کرده، به پنل ادمین هدایت شو
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    
+    if (token && userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        if (user.role === 'admin') {
+          router.replace('/admin');
+          return;
+        }
+      } catch(e) {}
+    }
+  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -38,13 +54,12 @@ export default function AdminLogin() {
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         
-        // بررسی نقش ادمین
         if (data.user.role === 'admin') {
           router.push('/admin');
         } else {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          router.push('/'); // بدون پیام، فقط به صفحه اصلی
+          router.push('/');
         }
       } else {
         setError(data.message || 'ایمیل یا رمز عبور اشتباه است');
