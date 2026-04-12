@@ -71,6 +71,7 @@ export default function Home() {
 
   // رفرنس برای اسکرول هر دسته
   const scrollRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+  const autoScrollIntervals = useRef<{ [key: string]: NodeJS.Timeout }>({});
 
   const scrollLeft = (categoryId: number) => {
     const container = scrollRefs.current[`scroll-${categoryId}`];
@@ -83,6 +84,35 @@ export default function Home() {
     const container = scrollRefs.current[`scroll-${categoryId}`];
     if (container) {
       container.scrollBy({ left: 320, behavior: 'smooth' });
+    }
+  };
+
+  // شروع اسکرول خودکار
+  const startAutoScroll = (categoryId: number) => {
+    if (autoScrollIntervals.current[`auto-${categoryId}`]) {
+      clearInterval(autoScrollIntervals.current[`auto-${categoryId}`]);
+    }
+    
+    autoScrollIntervals.current[`auto-${categoryId}`] = setInterval(() => {
+      const container = scrollRefs.current[`scroll-${categoryId}`];
+      if (container) {
+        const maxScroll = container.scrollWidth - container.clientWidth;
+        const currentScroll = container.scrollLeft;
+        
+        if (currentScroll + 320 >= maxScroll) {
+          // اگر به انتها رسید، به ابتدا برگرد
+          container.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          container.scrollBy({ left: 320, behavior: 'smooth' });
+        }
+      }
+    }, 4000); // هر 4 ثانیه یکبار اسکرول می‌کند
+  };
+
+  // توقف اسکرول خودکار
+  const stopAutoScroll = (categoryId: number) => {
+    if (autoScrollIntervals.current[`auto-${categoryId}`]) {
+      clearInterval(autoScrollIntervals.current[`auto-${categoryId}`]);
     }
   };
 
@@ -126,11 +156,23 @@ export default function Home() {
       });
   }, []);
 
+  // شروع اسکرول خودکار بعد از لود محصولات
+  useEffect(() => {
+    if (!loading && productsByCategory.length > 0) {
+      const timers = setTimeout(() => {
+        productsByCategory.forEach(category => {
+          startAutoScroll(category.id);
+        });
+      }, 1000);
+      
+      return () => clearTimeout(timers);
+    }
+  }, [loading, products]);
+
   // گروه‌بندی محصولات بر اساس دسته‌بندی و تصادفی کردن داخل هر دسته
   const productsByCategory = categoriesList
     .map(cat => {
       const categoryProducts = products.filter(p => p.category === cat.name);
-      // تصادفی کردن محصولات هر دسته
       const shuffledProducts = [...categoryProducts].sort(() => 0.5 - Math.random());
       return {
         ...cat,
@@ -216,9 +258,14 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* نمایش محصولات به صورت دسته‌بندی افقی با اسکرول تصادفی */}
+        {/* نمایش محصولات به صورت دسته‌بندی افقی با اسکرول خودکار */}
         {productsByCategory.map((category) => (
-          <div key={category.id} className="mb-12">
+          <div 
+            key={category.id} 
+            className="mb-12"
+            onMouseEnter={() => stopAutoScroll(category.id)}
+            onMouseLeave={() => startAutoScroll(category.id)}
+          >
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold text-gray-800 pr-3 border-r-4 flex items-center gap-2" style={{ borderRightColor: settings.primaryColor }}>
                 <span>{category.icon}</span>
