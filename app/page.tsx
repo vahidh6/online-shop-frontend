@@ -192,10 +192,10 @@ export default function Home() {
         {products.length === 0 ? (
           <p className="text-center py-12 text-gray-500">هیچ محصولی یافت نشد</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.slice(0, 8).map((product) => (
-              <div key={product._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1">
-                <div className="bg-gray-100 h-48 flex items-center justify-center overflow-hidden">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {products.slice(0, 6).map((product) => (
+              <div key={product._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col h-full">
+                <div className="bg-gray-100 h-56 flex items-center justify-center overflow-hidden">
                   {product.images && product.images[0] ? (
                     <img 
                       src={product.images[0]} 
@@ -213,15 +213,18 @@ export default function Home() {
                     <span className="text-6xl">📦</span>
                   )}
                 </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-gray-800 mb-2 truncate">{product.name}</h3>
-                  <div className="text-xl font-bold text-green-600 mb-2">{product.price.toLocaleString()} افغانی</div>
-                  <div className="inline-block bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-600 mb-3">
+                <div className="p-5 flex flex-col flex-grow">
+                  <h3 className="font-bold text-xl text-gray-800 mb-2 line-clamp-2 min-h-[56px]">{product.name}</h3>
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-3 min-h-[60px]">
+                    {product.description || 'توضیحاتی برای این محصول وجود ندارد.'}
+                  </p>
+                  <div className="text-2xl font-bold text-green-600 mb-3">{product.price.toLocaleString()} افغانی</div>
+                  <div className="inline-block bg-gray-100 px-3 py-1 rounded-full text-xs text-gray-600 mb-4 w-fit">
                     {product.category}
                   </div>
                   <Link 
                     href={`/products/${product._id}`} 
-                    className="block text-center text-white py-2 rounded-lg transition" 
+                    className="block text-center text-white py-3 rounded-lg transition mt-auto" 
                     style={{ backgroundColor: settings.secondaryColor }}
                     onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = settings.primaryColor; }}
                     onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = settings.secondaryColor; }}
