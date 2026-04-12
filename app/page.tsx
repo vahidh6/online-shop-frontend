@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface Product {
   _id: string;
@@ -10,6 +11,7 @@ interface Product {
   price: number;
   category: string;
   createdAt: string;
+  images?: string[];
 }
 
 interface Settings {
@@ -193,8 +195,23 @@ export default function Home() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {products.slice(0, 8).map((product) => (
               <div key={product._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1">
-                <div className="bg-gray-100 h-48 flex items-center justify-center">
-                  <span className="text-6xl">📦</span>
+                <div className="bg-gray-100 h-48 flex items-center justify-center overflow-hidden">
+                  {product.images && product.images[0] ? (
+                    <img 
+                      src={product.images[0]} 
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          parent.innerHTML = '<span class="text-6xl">📦</span>';
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="text-6xl">📦</span>
+                  )}
                 </div>
                 <div className="p-4">
                   <h3 className="font-bold text-gray-800 mb-2 truncate">{product.name}</h3>
