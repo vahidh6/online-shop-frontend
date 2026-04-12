@@ -45,6 +45,10 @@ export default function AdminLogin() {
           setError('شما دسترسی ادمین ندارید');
           localStorage.removeItem('token');
           localStorage.removeItem('user');
+          // بعد از 2 ثانیه به صفحه اصلی برمی‌گردد
+          setTimeout(() => {
+            router.push('/');
+          }, 2000);
         }
       } else {
         setError(data.message || 'ایمیل یا رمز عبور اشتباه است');

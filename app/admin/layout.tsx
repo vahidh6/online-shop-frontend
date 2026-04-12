@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import Link from 'next/link';
 
 export default function AdminLayout({
   children,
@@ -12,22 +11,18 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
-
-  // مسیرهایی که نیاز به لاگین ندارند
-  const publicPaths = ['/admin/login'];
 
   useEffect(() => {
     const token = localStorage.getItem('token');
     const user = localStorage.getItem('user');
 
-    // اگر در صفحه لاگین هستیم، اجازه دسترسی بده
-    if (publicPaths.includes(pathname)) {
+    // صفحه لاگین - اجازه دسترسی
+    if (pathname === '/admin/login') {
       setLoading(false);
       return;
     }
 
-    // بررسی وجود توکن
+    // بررسی توکن
     if (!token) {
       router.push('/admin/login');
       return;
@@ -37,12 +32,12 @@ export default function AdminLayout({
     try {
       const userData = JSON.parse(user || '{}');
       if (userData.role !== 'admin') {
-        router.push('/admin/login');
+        // به جای خطا، به صفحه اصلی هدایت کن
+        router.push('/');
         return;
       }
-      setIsAuthorized(true);
     } catch (e) {
-      router.push('/admin/login');
+      router.push('/');
       return;
     } finally {
       setLoading(false);
@@ -57,8 +52,8 @@ export default function AdminLayout({
     );
   }
 
-  // اگر در صفحه لاگین هستیم یا مجاز نیستیم، فقط کودکان را نمایش بده
-  if (publicPaths.includes(pathname) || !isAuthorized) {
+  // صفحه لاگین
+  if (pathname === '/admin/login') {
     return <>{children}</>;
   }
 
