@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 
 interface Product {
   _id: string;
@@ -35,11 +34,21 @@ interface Settings {
   maintenanceMessage: string;
 }
 
+// لیست دسته‌بندی‌ها
+const categoriesList = [
+  { id: 1, name: 'قطعات و تعمیرات موبایل', icon: '🔧' },
+  { id: 2, name: 'باتری و شارژ', icon: '🔋' },
+  { id: 3, name: 'محافظ و جانبی', icon: '🛡️' },
+  { id: 4, name: 'صدا و تصویر', icon: '🎧' },
+  { id: 5, name: 'سایر', icon: '📦' },
+];
+
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('همه');
   const [settings, setSettings] = useState<Settings>({
     siteName: 'شرکت همراه افغان',
     siteDescription: 'بزرگترین فروشگاه تخصصی در افغانستان',
@@ -106,6 +115,11 @@ export default function Home() {
         setLoading(false);
       });
   }, []);
+
+  // فیلتر محصولات بر اساس دسته‌بندی
+  const filteredProducts = selectedCategory === 'همه' 
+    ? products 
+    : products.filter(p => p.category === selectedCategory);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -184,16 +198,56 @@ export default function Home() {
           </Link>
         </div>
 
+        {/* دسته‌بندی محصولات */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-800 mb-6 pr-3 border-r-4" style={{ borderRightColor: settings.primaryColor }}>
+            دسته‌بندی محصولات
+          </h2>
+          <div className="flex flex-wrap gap-4">
+            <button
+              onClick={() => setSelectedCategory('همه')}
+              className={`px-6 py-3 rounded-full font-medium transition-all duration-200 ${
+                selectedCategory === 'همه' 
+                  ? 'text-white shadow-lg' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+              style={selectedCategory === 'همه' ? { backgroundColor: settings.primaryColor } : {}}
+            >
+              همه محصولات
+            </button>
+            {categoriesList.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.name)}
+                className={`px-6 py-3 rounded-full font-medium transition-all duration-200 flex items-center gap-2 ${
+                  selectedCategory === cat.name 
+                    ? 'text-white shadow-lg' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+                style={selectedCategory === cat.name ? { backgroundColor: settings.primaryColor } : {}}
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* محصولات */}
-        <h2 className="text-2xl font-bold text-gray-800 mb-6 pr-3 border-r-4" style={{ borderRightColor: settings.primaryColor }}>
-          آخرین محصولات
-        </h2>
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800 pr-3 border-r-4" style={{ borderRightColor: settings.primaryColor }}>
+            {selectedCategory === 'همه' ? 'آخرین محصولات' : `محصولات ${selectedCategory}`}
+          </h2>
+          <Link href="/products" className="text-sm hover:underline" style={{ color: settings.primaryColor }}>
+            مشاهده همه ←
+          </Link>
+        </div>
         
-        {products.length === 0 ? (
-          <p className="text-center py-12 text-gray-500">هیچ محصولی یافت نشد</p>
+        {filteredProducts.length === 0 ? (
+          <p className="text-center py-12 text-gray-500">هیچ محصولی در این دسته یافت نشد</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {products.slice(0, 6).map((product) => (
+            {filteredProducts.slice(0, 6).map((product) => (
               <div key={product._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col h-full">
                 <div className="bg-gray-100 h-56 flex items-center justify-center overflow-hidden">
                   {product.images && product.images[0] ? (
