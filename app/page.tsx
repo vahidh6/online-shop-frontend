@@ -39,11 +39,11 @@ export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [settings, setSettings] = useState<Settings>({
-    siteName: 'شرکت تجارتی ادوانس',
+    siteName: 'شرکت همراه افغان',
     siteDescription: 'بزرگترین فروشگاه تخصصی در افغانستان',
-    phone: '۰۷۹۹ ۱۲۳ ۴۵۶۷',
+    phone: '0799364841 ',
     email: 'info@advance.af',
-    address: 'کابل، افغانستان',
+    address: 'هرات افغانستان',
     workingHours: 'شنبه تا پنجشنبه ۹:۰۰ - ۱۷:۰۰',
     facebook: '',
     instagram: '',
