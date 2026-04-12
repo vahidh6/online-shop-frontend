@@ -12,11 +12,52 @@ interface Product {
   createdAt: string;
 }
 
+interface Settings {
+  siteName: string;
+  siteDescription: string;
+  phone: string;
+  email: string;
+  address: string;
+  workingHours: string;
+  facebook: string;
+  instagram: string;
+  telegram: string;
+  whatsapp: string;
+  deliveryFeeKabul: number;
+  deliveryFeeOther: number;
+  freeDeliveryThreshold: number;
+  primaryColor: string;
+  secondaryColor: string;
+  footerText: string;
+  isMaintenance: boolean;
+  maintenanceMessage: string;
+}
+
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
+  const [settings, setSettings] = useState<Settings>({
+    siteName: 'شرکت تجارتی ادوانس',
+    siteDescription: 'بزرگترین فروشگاه تخصصی در افغانستان',
+    phone: '۰۷۹۹ ۱۲۳ ۴۵۶۷',
+    email: 'info@advance.af',
+    address: 'کابل، افغانستان',
+    workingHours: 'شنبه تا پنجشنبه ۹:۰۰ - ۱۷:۰۰',
+    facebook: '',
+    instagram: '',
+    telegram: '',
+    whatsapp: '',
+    deliveryFeeKabul: 50000,
+    deliveryFeeOther: 100000,
+    freeDeliveryThreshold: 0,
+    primaryColor: '#e53e3e',
+    secondaryColor: '#3182ce',
+    footerText: '© 2026 شرکت تجارتی ادوانس - تمامی حقوق محفوظ است',
+    isMaintenance: false,
+    maintenanceMessage: 'در حال بروزرسانی، به زودی بازمی‌گردیم'
+  });
 
   // بررسی وضعیت لاگین
   useEffect(() => {
@@ -33,6 +74,18 @@ export default function Home() {
     }
   }, []);
 
+  // دریافت تنظیمات سایت
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
+    
+    fetch(`${apiUrl}/api/settings`)
+      .then(res => res.json())
+      .then(data => {
+        if (data) setSettings(data);
+      })
+      .catch(err => console.error('Error fetching settings:', err));
+  }, []);
+
   // دریافت محصولات
   useEffect(() => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
@@ -40,7 +93,10 @@ export default function Home() {
     fetch(`${apiUrl}/api/products`)
       .then(res => res.json())
       .then(data => {
-        setProducts(data);
+        const sortedProducts = data.sort((a: Product, b: Product) => 
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        );
+        setProducts(sortedProducts);
         setLoading(false);
       })
       .catch(err => {
@@ -56,6 +112,18 @@ export default function Home() {
     window.location.href = '/';
   };
 
+  if (settings.isMaintenance) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center p-8 bg-white rounded-lg shadow">
+          <div className="text-6xl mb-4">🔧</div>
+          <h1 className="text-2xl font-bold mb-2">{settings.siteName}</h1>
+          <p className="text-gray-600">{settings.maintenanceMessage}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -69,8 +137,8 @@ export default function Home() {
       {/* هدر */}
       <header className="bg-white shadow-md sticky top-0 z-50">
         <div className="container-custom py-4 flex justify-between items-center flex-wrap gap-4">
-          <Link href="/" className="text-2xl font-bold text-red-600">
-            🛍️ فروشگاه افغانستان
+          <Link href="/" className="text-2xl font-bold" style={{ color: settings.primaryColor }}>
+            🏢 {settings.siteName}
           </Link>
           
           <nav className="flex gap-6">
@@ -106,16 +174,18 @@ export default function Home() {
       {/* محتوای اصلی */}
       <main className="container-custom py-8">
         {/* Hero Section */}
-        <div className="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-12 text-center text-white mb-12">
-          <h1 className="text-4xl font-bold mb-4">🛍️ به فروشگاه افغانستان خوش آمدید!</h1>
-          <p className="text-xl mb-6">بهترین محصولات با بهترین قیمت، ارسال سریع به سراسر افغانستان</p>
+        <div className="rounded-2xl p-12 text-center text-white mb-12" style={{ background: `linear-gradient(135deg, ${settings.primaryColor} 0%, ${settings.secondaryColor} 100%)` }}>
+          <h1 className="text-4xl font-bold mb-4">🏢 به {settings.siteName} خوش آمدید!</h1>
+          <p className="text-xl mb-6">{settings.siteDescription}</p>
           <Link href="/products" className="bg-orange-500 hover:bg-orange-600 px-8 py-3 rounded-full font-bold inline-block transition">
             شروع خرید
           </Link>
         </div>
 
         {/* محصولات */}
-        <h2 className="text-2xl font-bold text-gray-800 mb-6 pr-3 border-r-4 border-red-600">آخرین محصولات</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-6 pr-3 border-r-4" style={{ borderRightColor: settings.primaryColor }}>
+          آخرین محصولات
+        </h2>
         
         {products.length === 0 ? (
           <p className="text-center py-12 text-gray-500">هیچ محصولی یافت نشد</p>
@@ -134,7 +204,10 @@ export default function Home() {
                   </div>
                   <Link 
                     href={`/products/${product._id}`} 
-                    className="block text-center bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg transition"
+                    className="block text-center text-white py-2 rounded-lg transition" 
+                    style={{ backgroundColor: settings.secondaryColor }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = settings.primaryColor; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = settings.secondaryColor; }}
                   >
                     مشاهده جزئیات
                   </Link>
@@ -146,12 +219,12 @@ export default function Home() {
       </main>
 
       {/* فوتر */}
-      <footer className="bg-gray-800 text-white mt-16">
+      <footer className="text-white mt-16" style={{ backgroundColor: '#2d3748' }}>
         <div className="container-custom py-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <h3 className="text-xl font-bold mb-4">فروشگاه افغانستان</h3>
-              <p className="text-gray-300">بزرگترین فروشگاه آنلاین در افغانستان</p>
+              <h3 className="text-xl font-bold mb-4" style={{ color: settings.primaryColor }}>{settings.siteName}</h3>
+              <p className="text-gray-300">{settings.siteDescription}</p>
             </div>
             <div>
               <h4 className="font-semibold mb-4">لینک‌های سریع</h4>
@@ -172,14 +245,15 @@ export default function Home() {
             <div>
               <h4 className="font-semibold mb-4">تماس با ما</h4>
               <ul className="space-y-2 text-gray-300">
-                <li>📞 ۰۷۹۹ ۱۲۳ ۴۵۶۷</li>
-                <li>✉️ info@shop.af</li>
-                <li>📍 کابل، افغانستان</li>
+                <li>📞 {settings.phone}</li>
+                <li>✉️ {settings.email}</li>
+                <li>📍 {settings.address}</li>
+                <li>🕐 {settings.workingHours}</li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-            <p>&copy; 2026 فروشگاه آنلاین افغانستان. تمام حقوق محفوظ است.</p>
+            <p>{settings.footerText}</p>
           </div>
         </div>
       </footer>
