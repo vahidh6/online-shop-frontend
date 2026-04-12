@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 interface Product {
@@ -43,11 +43,46 @@ const categoriesList = [
   { id: 5, name: 'سایر', icon: '📦' },
 ];
 
+// اسلایدهای تبلیغاتی
+const slides = [
+  {
+    id: 1,
+    title: 'تخفیف ویژه تا ۵۰٪',
+    description: 'بهترین محصولات با بهترین قیمت',
+    image: '🎁',
+    bgColor: '#3b82f6'
+  },
+  {
+    id: 2,
+    title: 'ارسال رایگان',
+    description: 'برای خرید بالای ۱۰۰۰۰ افغانی',
+    image: '🚚',
+    bgColor: '#10b981'
+  },
+  {
+    id: 3,
+    title: 'محصولات اصل',
+    description: 'ضمانت اصالت کالا',
+    image: '✅',
+    bgColor: '#f59e0b'
+  },
+  {
+    id: 4,
+    title: 'پرداخت در محل',
+    description: 'امکان پرداخت هنگام تحویل',
+    image: '💰',
+    bgColor: '#8b5cf6'
+  },
+];
+
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('همه');
+  const [currentSlide, setCurrentSlide] = useState(0);
   const [settings, setSettings] = useState<Settings>({
     siteName: 'شرکت همراه افغان',
     siteDescription: 'بزرگترین فروشگاه تخصصی در افغانستان',
@@ -69,52 +104,13 @@ export default function Home() {
     maintenanceMessage: 'در حال بروزرسانی، به زودی بازمی‌گردیم'
   });
 
-  // رفرنس برای اسکرول هر دسته
-  const scrollRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
-  const autoScrollIntervals = useRef<{ [key: string]: NodeJS.Timeout }>({});
-
-  const scrollLeft = (categoryId: number) => {
-    const container = scrollRefs.current[`scroll-${categoryId}`];
-    if (container) {
-      container.scrollBy({ left: -320, behavior: 'smooth' });
-    }
-  };
-
-  const scrollRight = (categoryId: number) => {
-    const container = scrollRefs.current[`scroll-${categoryId}`];
-    if (container) {
-      container.scrollBy({ left: 320, behavior: 'smooth' });
-    }
-  };
-
-  // شروع اسکرول خودکار
-  const startAutoScroll = (categoryId: number) => {
-    if (autoScrollIntervals.current[`auto-${categoryId}`]) {
-      clearInterval(autoScrollIntervals.current[`auto-${categoryId}`]);
-    }
-    
-    autoScrollIntervals.current[`auto-${categoryId}`] = setInterval(() => {
-      const container = scrollRefs.current[`scroll-${categoryId}`];
-      if (container) {
-        const maxScroll = container.scrollWidth - container.clientWidth;
-        const currentScroll = container.scrollLeft;
-        
-        if (currentScroll + 320 >= maxScroll) {
-          // اگر به انتها رسید، به ابتدا برگرد
-          container.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-          container.scrollBy({ left: 320, behavior: 'smooth' });
-        }
-      }
-    }, 4000); // هر 4 ثانیه یکبار اسکرول می‌کند
-  };
-
-  // توقف اسکرول خودکار
-  const stopAutoScroll = (categoryId: number) => {
-    if (autoScrollIntervals.current[`auto-${categoryId}`]) {
-      clearInterval(autoScrollIntervals.current[`auto-${categoryId}`]);
-    }
-  };
+  // اسکرول خودکار اسلایدر
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -156,36 +152,24 @@ export default function Home() {
       });
   }, []);
 
-  // شروع اسکرول خودکار بعد از لود محصولات
-  useEffect(() => {
-    if (!loading && productsByCategory.length > 0) {
-      const timers = setTimeout(() => {
-        productsByCategory.forEach(category => {
-          startAutoScroll(category.id);
-        });
-      }, 1000);
-      
-      return () => clearTimeout(timers);
-    }
-  }, [loading, products]);
-
-  // گروه‌بندی محصولات بر اساس دسته‌بندی و تصادفی کردن داخل هر دسته
-  const productsByCategory = categoriesList
-    .map(cat => {
-      const categoryProducts = products.filter(p => p.category === cat.name);
-      const shuffledProducts = [...categoryProducts].sort(() => 0.5 - Math.random());
-      return {
-        ...cat,
-        products: shuffledProducts
-      };
-    })
-    .filter(cat => cat.products.length > 0);
+  // فیلتر محصولات بر اساس جستجو و دسته‌بندی
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = searchTerm === '' || 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesCategory = selectedCategory === 'همه' || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setIsLoggedIn(false);
     window.location.href = '/';
+  };
+
+  const goToSlide = (index: number) => {
+    setCurrentSlide(index);
   };
 
   if (settings.isMaintenance) {
@@ -249,102 +233,164 @@ export default function Home() {
 
       {/* محتوای اصلی */}
       <main className="container-custom py-8">
-        {/* Hero Section */}
-        <div className="rounded-2xl p-12 text-center text-white mb-12" style={{ background: `linear-gradient(135deg, ${settings.primaryColor} 0%, ${settings.secondaryColor} 100%)` }}>
-          <h1 className="text-4xl font-bold mb-4">🏢 به {settings.siteName} خوش آمدید!</h1>
-          <p className="text-xl mb-6">{settings.siteDescription}</p>
-          <Link href="/products" className="bg-orange-500 hover:bg-orange-600 px-8 py-3 rounded-full font-bold inline-block transition">
-            شروع خرید
-          </Link>
+        {/* اسلایدر خودکار */}
+        <div className="relative mb-12 rounded-2xl overflow-hidden shadow-lg h-80">
+          {slides.map((slide, index) => (
+            <div
+              key={slide.id}
+              className={`absolute inset-0 transition-opacity duration-700 ease-in-out flex items-center justify-center text-white p-8 ${
+                index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
+              }`}
+              style={{ backgroundColor: slide.bgColor }}
+            >
+              <div className="text-center">
+                <div className="text-7xl mb-4">{slide.image}</div>
+                <h2 className="text-3xl md:text-4xl font-bold mb-2">{slide.title}</h2>
+                <p className="text-lg md:text-xl">{slide.description}</p>
+              </div>
+            </div>
+          ))}
+          
+          {/* دکمه‌های ناوبری اسلایدر */}
+          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
+            {slides.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => goToSlide(index)}
+                className={`w-3 h-3 rounded-full transition-all ${
+                  index === currentSlide ? 'bg-white w-6' : 'bg-white/50'
+                }`}
+              />
+            ))}
+          </div>
         </div>
 
-        {/* نمایش محصولات به صورت دسته‌بندی افقی با اسکرول خودکار */}
-        {productsByCategory.map((category) => (
-          <div 
-            key={category.id} 
-            className="mb-12"
-            onMouseEnter={() => stopAutoScroll(category.id)}
-            onMouseLeave={() => startAutoScroll(category.id)}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-2xl font-bold text-gray-800 pr-3 border-r-4 flex items-center gap-2" style={{ borderRightColor: settings.primaryColor }}>
-                <span>{category.icon}</span>
-                <span>{category.name}</span>
-              </h2>
-              <Link href={`/products?category=${encodeURIComponent(category.name)}`} className="text-sm hover:underline" style={{ color: settings.primaryColor }}>
-                مشاهده همه ←
-              </Link>
-            </div>
-            
-            <div className="relative group">
-              {/* دکمه اسکرول به چپ */}
-              <button
-                onClick={() => scrollLeft(category.id)}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-100"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              
-              {/* کانتینر اسکرول افقی */}
-              <div
-                ref={(el) => { scrollRefs.current[`scroll-${category.id}`] = el; }}
-                className="flex overflow-x-auto gap-6 pb-4 scrollbar-hide"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-              >
-                {category.products.map((product) => (
-                  <div key={product._id} className="min-w-[280px] w-[280px] bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col">
-                    <div className="bg-gray-100 h-48 flex items-center justify-center overflow-hidden">
-                      {product.images && product.images[0] ? (
-                        <img 
-                          src={product.images[0]} 
-                          alt={product.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const parent = e.currentTarget.parentElement;
-                            if (parent) {
-                              parent.innerHTML = '<span class="text-6xl">📦</span>';
-                            }
-                          }}
-                        />
-                      ) : (
-                        <span className="text-6xl">📦</span>
-                      )}
-                    </div>
-                    <div className="p-4 flex flex-col flex-grow">
-                      <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 min-h-[48px]">{product.name}</h3>
-                      <div className="text-xl font-bold text-green-600 mb-2">{product.price.toLocaleString()} افغانی</div>
-                      <div className="inline-block bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600 mb-3 w-fit">
-                        {product.category}
-                      </div>
-                      <Link 
-                        href={`/products/${product._id}`} 
-                        className="block text-center text-white py-2 rounded-lg transition mt-auto" 
-                        style={{ backgroundColor: settings.secondaryColor }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = settings.primaryColor; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = settings.secondaryColor; }}
-                      >
-                        مشاهده جزئیات
-                      </Link>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              
-              {/* دکمه اسکرول به راست */}
-              <button
-                onClick={() => scrollRight(category.id)}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-white rounded-full shadow-lg p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-gray-100"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
+        {/* جستجو */}
+        <div className="mb-8">
+          <div className="relative max-w-md mx-auto">
+            <input
+              type="text"
+              placeholder="جستجوی محصولات..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-5 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 pr-12"
+              style={{ focusRingColor: settings.primaryColor }}
+            />
+            <span className="absolute left-3 top-3 text-gray-400 text-xl">🔍</span>
           </div>
-        ))}
+        </div>
+
+        {/* دسته‌بندی */}
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-3 justify-center">
+            <button
+              onClick={() => setSelectedCategory('همه')}
+              className={`px-5 py-2 rounded-full font-medium transition-all duration-200 ${
+                selectedCategory === 'همه' 
+                  ? 'text-white shadow-md' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+              style={selectedCategory === 'همه' ? { backgroundColor: settings.primaryColor } : {}}
+            >
+              همه محصولات
+            </button>
+            {categoriesList.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.name)}
+                className={`px-5 py-2 rounded-full font-medium transition-all duration-200 flex items-center gap-1 ${
+                  selectedCategory === cat.name 
+                    ? 'text-white shadow-md' 
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+                style={selectedCategory === cat.name ? { backgroundColor: settings.primaryColor } : {}}
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* تعداد نتایج */}
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-800">
+            {selectedCategory === 'همه' ? 'همه محصولات' : `محصولات ${selectedCategory}`}
+          </h2>
+          <p className="text-gray-500 text-sm">تعداد {filteredProducts.length} محصول</p>
+        </div>
+
+        {/* گرید محصولات */}
+        {filteredProducts.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-lg">
+            <div className="text-6xl mb-4">🔍</div>
+            <p className="text-gray-500 text-lg">هیچ محصولی با این مشخصات یافت نشد</p>
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategory('همه');
+              }}
+              className="mt-4 px-6 py-2 rounded-lg text-white"
+              style={{ backgroundColor: settings.primaryColor }}
+            >
+              حذف فیلترها
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <div key={product._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col h-full">
+                <div className="bg-gray-100 h-48 flex items-center justify-center overflow-hidden">
+                  {product.images && product.images[0] ? (
+                    <img 
+                      src={product.images[0]} 
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                        const parent = e.currentTarget.parentElement;
+                        if (parent) {
+                          parent.innerHTML = '<span class="text-6xl">📦</span>';
+                        }
+                      }}
+                    />
+                  ) : (
+                    <span className="text-6xl">📦</span>
+                  )}
+                </div>
+                <div className="p-4 flex flex-col flex-grow">
+                  <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 min-h-[48px]">{product.name}</h3>
+                  <div className="text-xl font-bold text-green-600 mb-2">{product.price.toLocaleString()} افغانی</div>
+                  <div className="inline-block bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600 mb-3 w-fit">
+                    {product.category}
+                  </div>
+                  <Link 
+                    href={`/products/${product._id}`} 
+                    className="block text-center text-white py-2 rounded-lg transition mt-auto" 
+                    style={{ backgroundColor: settings.secondaryColor }}
+                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = settings.primaryColor; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = settings.secondaryColor; }}
+                  >
+                    مشاهده جزئیات
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* دکمه مشاهده همه محصولات */}
+        {filteredProducts.length > 8 && (
+          <div className="text-center mt-8">
+            <Link 
+              href="/products" 
+              className="inline-block px-8 py-3 rounded-lg font-medium transition"
+              style={{ backgroundColor: '#f3f4f6', color: settings.primaryColor }}
+            >
+              مشاهده همه {filteredProducts.length} محصول
+            </Link>
+          </div>
+        )}
       </main>
 
       {/* فوتر */}
@@ -386,12 +432,6 @@ export default function Home() {
           </div>
         </div>
       </footer>
-
-      <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </div>
   );
 }
