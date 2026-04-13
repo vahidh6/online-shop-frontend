@@ -13,6 +13,17 @@ interface Product {
   images?: string[];
 }
 
+interface Banner {
+  _id: string;
+  title: string;
+  description: string;
+  image: string;
+  bgColor: string;
+  link?: string;
+  buttonText?: string;
+  buttonLink?: string;
+}
+
 interface Settings {
   siteName: string;
   siteDescription: string;
@@ -42,15 +53,9 @@ const categoriesList = [
   { id: 5, name: 'سایر', icon: '📦' },
 ];
 
-const bannerSlides = [
-  { id: 1, title: 'تخفیف ویژه تا ۵۰٪', description: 'بهترین محصولات با بهترین قیمت', image: '🎁', bgColor: '#3b82f6' },
-  { id: 2, title: 'ارسال رایگان', description: 'برای خرید بالای ۱۰۰۰۰ افغانی', image: '🚚', bgColor: '#10b981' },
-  { id: 3, title: 'محصولات اصل', description: 'ضمانت اصالت کالا', image: '✅', bgColor: '#f59e0b' },
-  { id: 4, title: 'پرداخت در محل', description: 'امکان پرداخت هنگام تحویل', image: '💰', bgColor: '#8b5cf6' },
-];
-
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
@@ -61,7 +66,7 @@ export default function Home() {
   const [settings, setSettings] = useState<Settings>({
     siteName: 'شرکت همراه افغان',
     siteDescription: 'بزرگترین فروشگاه تخصصی در افغانستان',
-    phone: '0799364841 ',
+    phone: '0799364841',
     email: 'info@advance.af',
     address: 'کابل، افغانستان',
     workingHours: 'شنبه تا پنجشنبه ۹:۰۰ - ۱۷:۰۰',
@@ -91,13 +96,45 @@ export default function Home() {
   const totalProductSlides = Math.ceil(filteredProducts.length / 4);
   const currentProducts = filteredProducts.slice(currentProductSlide * 4, (currentProductSlide * 4) + 4);
 
+  // دریافت بنرها از API
+  useEffect(() => {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
+    
+    fetch(`${apiUrl}/api/banners`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.length > 0) {
+          setBanners(data);
+        } else {
+          // بنرهای پیش‌فرض اگر هیچ بنری در دیتابیس نبود
+          setBanners([
+            { _id: '1', title: 'تخفیف ویژه تا ۵۰٪', description: 'بهترین محصولات با بهترین قیمت', image: '🎁', bgColor: '#3b82f6' },
+            { _id: '2', title: 'ارسال رایگان', description: 'برای خرید بالای ۱۰۰۰۰ افغانی', image: '🚚', bgColor: '#10b981' },
+            { _id: '3', title: 'محصولات اصل', description: 'ضمانت اصالت کالا', image: '✅', bgColor: '#f59e0b' },
+            { _id: '4', title: 'پرداخت در محل', description: 'امکان پرداخت هنگام تحویل', image: '💰', bgColor: '#8b5cf6' },
+          ]);
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching banners:', err);
+        // در صورت خطا، بنرهای پیش‌فرض را نشان بده
+        setBanners([
+          { _id: '1', title: 'تخفیف ویژه تا ۵۰٪', description: 'بهترین محصولات با بهترین قیمت', image: '🎁', bgColor: '#3b82f6' },
+          { _id: '2', title: 'ارسال رایگان', description: 'برای خرید بالای ۱۰۰۰۰ افغانی', image: '🚚', bgColor: '#10b981' },
+          { _id: '3', title: 'محصولات اصل', description: 'ضمانت اصالت کالا', image: '✅', bgColor: '#f59e0b' },
+          { _id: '4', title: 'پرداخت در محل', description: 'امکان پرداخت هنگام تحویل', image: '💰', bgColor: '#8b5cf6' },
+        ]);
+      });
+  }, []);
+
   // اسکرول خودکار بنر تبلیغاتی
   useEffect(() => {
+    if (banners.length === 0) return;
     const bannerInterval = setInterval(() => {
-      setCurrentBannerSlide((prev) => (prev + 1) % bannerSlides.length);
+      setCurrentBannerSlide((prev) => (prev + 1) % banners.length);
     }, 5000);
     return () => clearInterval(bannerInterval);
-  }, []);
+  }, [banners.length]);
 
   // اسکرول خودکار محصولات
   useEffect(() => {
@@ -229,59 +266,73 @@ export default function Home() {
       </header>
 
       <main className="container-custom py-8">
-        {/* اسلایدر تبلیغاتی */}
-        <div className="relative mb-12 rounded-2xl overflow-hidden shadow-lg h-80">
-          {bannerSlides.map((slide, index) => (
-            <div
-              key={slide.id}
-              className={`absolute inset-0 transition-all duration-700 ease-in-out transform flex items-center justify-center text-white p-8 ${
-                index === currentBannerSlide 
-                  ? 'opacity-100 translate-x-0 z-10' 
-                  : index < currentBannerSlide 
-                    ? 'opacity-0 -translate-x-full z-0' 
-                    : 'opacity-0 translate-x-full z-0'
-              }`}
-              style={{ backgroundColor: slide.bgColor }}
-            >
-              <div className="text-center">
-                <div className="text-7xl mb-4">{slide.image}</div>
-                <h2 className="text-3xl md:text-4xl font-bold mb-2">{slide.title}</h2>
-                <p className="text-lg md:text-xl">{slide.description}</p>
-              </div>
-            </div>
-          ))}
-          
-          <button
-            onClick={() => goToBannerSlide((currentBannerSlide - 1 + bannerSlides.length) % bannerSlides.length)}
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 backdrop-blur-sm rounded-full p-2 transition-all duration-300 hover:scale-110"
-          >
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <button
-            onClick={() => goToBannerSlide((currentBannerSlide + 1) % bannerSlides.length)}
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 backdrop-blur-sm rounded-full p-2 transition-all duration-300 hover:scale-110"
-          >
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-          
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
-            {bannerSlides.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => goToBannerSlide(index)}
-                className={`transition-all duration-300 rounded-full ${
+        {/* اسلایدر تبلیغاتی - داینامیک از دیتابیس */}
+        {banners.length > 0 && (
+          <div className="relative mb-12 rounded-2xl overflow-hidden shadow-lg h-80">
+            {banners.map((slide, index) => (
+              <div
+                key={slide._id}
+                className={`absolute inset-0 transition-all duration-700 ease-in-out transform flex items-center justify-center text-white p-8 ${
                   index === currentBannerSlide 
-                    ? 'bg-white w-8 h-2' 
-                    : 'bg-white/50 w-2 h-2 hover:bg-white/80 hover:w-4'
+                    ? 'opacity-100 translate-x-0 z-10' 
+                    : index < currentBannerSlide 
+                      ? 'opacity-0 -translate-x-full z-0' 
+                      : 'opacity-0 translate-x-full z-0'
                 }`}
-              />
+                style={{ backgroundColor: slide.bgColor || '#3b82f6' }}
+              >
+                <div className="text-center">
+                  <div className="text-7xl mb-4">{slide.image || '🎯'}</div>
+                  <h2 className="text-3xl md:text-4xl font-bold mb-2">{slide.title}</h2>
+                  <p className="text-lg md:text-xl">{slide.description}</p>
+                  {slide.buttonLink && (
+                    <Link
+                      href={slide.buttonLink}
+                      className="inline-block mt-4 px-6 py-2 bg-white text-gray-800 rounded-lg hover:bg-gray-100 transition"
+                    >
+                      {slide.buttonText || 'مشاهده بیشتر'}
+                    </Link>
+                  )}
+                </div>
+              </div>
             ))}
+            
+            {banners.length > 1 && (
+              <>
+                <button
+                  onClick={() => goToBannerSlide((currentBannerSlide - 1 + banners.length) % banners.length)}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 backdrop-blur-sm rounded-full p-2 transition-all duration-300 hover:scale-110"
+                >
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => goToBannerSlide((currentBannerSlide + 1) % banners.length)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 backdrop-blur-sm rounded-full p-2 transition-all duration-300 hover:scale-110"
+                >
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                
+                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
+                  {banners.map((_, index) => (
+                    <button
+                      key={index}
+                      onClick={() => goToBannerSlide(index)}
+                      className={`transition-all duration-300 rounded-full ${
+                        index === currentBannerSlide 
+                          ? 'bg-white w-8 h-2' 
+                          : 'bg-white/50 w-2 h-2 hover:bg-white/80 hover:w-4'
+                      }`}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
           </div>
-        </div>
+        )}
 
         {/* جستجو */}
         <div className="mb-6">
