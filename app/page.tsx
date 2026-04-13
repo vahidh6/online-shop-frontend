@@ -42,7 +42,6 @@ const categoriesList = [
   { id: 5, name: 'سایر', icon: '📦' },
 ];
 
-// اسلایدهای تبلیغاتی
 const bannerSlides = [
   { id: 1, title: 'تخفیف ویژه تا ۵۰٪', description: 'بهترین محصولات با بهترین قیمت', image: '🎁', bgColor: '#3b82f6' },
   { id: 2, title: 'ارسال رایگان', description: 'برای خرید بالای ۱۰۰۰۰ افغانی', image: '🚚', bgColor: '#10b981' },
@@ -80,6 +79,18 @@ export default function Home() {
     maintenanceMessage: 'در حال بروزرسانی، به زودی بازمی‌گردیم'
   });
 
+  // جستجو و فیلتر - تعریف قبل از استفاده در useEffect
+  const filteredProducts = products.filter(product => {
+    const matchesCategory = selectedCategory === 'همه' || product.category === selectedCategory;
+    const matchesSearch = searchTerm === '' || 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
+
+  const totalProductSlides = Math.ceil(filteredProducts.length / 4);
+  const currentProducts = filteredProducts.slice(currentProductSlide * 4, (currentProductSlide * 4) + 4);
+
   // اسکرول خودکار بنر تبلیغاتی
   useEffect(() => {
     const bannerInterval = setInterval(() => {
@@ -93,10 +104,10 @@ export default function Home() {
     if (filteredProducts.length === 0) return;
     
     const productInterval = setInterval(() => {
-      setCurrentProductSlide((prev) => (prev + 1) % Math.ceil(filteredProducts.length / 4));
+      setCurrentProductSlide((prev) => (prev + 1) % totalProductSlides);
     }, 6000);
     return () => clearInterval(productInterval);
-  }, [filteredProducts.length]);
+  }, [filteredProducts.length, totalProductSlides]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -137,18 +148,6 @@ export default function Home() {
         setLoading(false);
       });
   }, []);
-
-  // جستجو و فیلتر
-  const filteredProducts = products.filter(product => {
-    const matchesCategory = selectedCategory === 'همه' || product.category === selectedCategory;
-    const matchesSearch = searchTerm === '' || 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesCategory && matchesSearch;
-  });
-
-  const totalProductSlides = Math.ceil(filteredProducts.length / 4);
-  const currentProducts = filteredProducts.slice(currentProductSlide * 4, (currentProductSlide * 4) + 4);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -363,7 +362,6 @@ export default function Home() {
             </div>
             
             <div className="relative">
-              {/* محصولات در قالب اسلایدر */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {currentProducts.map((product) => (
                   <div key={product._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col h-full group">
@@ -405,7 +403,6 @@ export default function Home() {
                 ))}
               </div>
               
-              {/* دکمه‌های ناوبری اسلایدر محصولات */}
               {totalProductSlides > 1 && (
                 <>
                   <button
@@ -425,16 +422,13 @@ export default function Home() {
                     </svg>
                   </button>
                   
-                  {/* نقطه‌های ناوبری */}
                   <div className="flex justify-center gap-2 mt-6">
                     {Array.from({ length: totalProductSlides }).map((_, index) => (
                       <button
                         key={index}
                         onClick={() => goToProductSlide(index)}
                         className={`transition-all duration-300 rounded-full ${
-                          index === currentProductSlide 
-                            ? 'w-6 h-2' 
-                            : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'
+                          index === currentProductSlide ? 'w-6 h-2' : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'
                         }`}
                         style={{ backgroundColor: index === currentProductSlide ? settings.primaryColor : '#cbd5e0' }}
                       />
