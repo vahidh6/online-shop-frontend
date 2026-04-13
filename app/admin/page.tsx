@@ -12,7 +12,11 @@ import {
   Cog6ToothIcon,
   ArrowRightOnRectangleIcon,
   PlusCircleIcon,
-  DocumentTextIcon
+  DocumentTextIcon,
+  TagIcon,
+  PhotoIcon,
+  ChartBarSquareIcon,
+  DocumentArrowDownIcon
 } from '@heroicons/react/24/outline';
 
 interface Stats {
@@ -112,11 +116,15 @@ export default function AdminDashboard() {
     );
   }
 
+  // منوی اصلی - آیتم‌های جدید اضافه شده
   const menuItems = [
     { title: 'مدیریت محصولات', icon: CubeIcon, href: '/admin/products', color: 'bg-blue-500', description: 'افزودن، ویرایش و حذف محصولات' },
     { title: 'مدیریت سفارشات', icon: ShoppingBagIcon, href: '/admin/orders', color: 'bg-green-500', description: 'مشاهده و بروزرسانی وضعیت سفارشات' },
     { title: 'مدیریت کاربران', icon: UserGroupIcon, href: '/admin/users', color: 'bg-purple-500', description: 'مدیریت کاربران و دسترسی‌ها' },
     { title: 'مدیریت موجودی', icon: DocumentTextIcon, href: '/admin/inventory', color: 'bg-yellow-500', description: 'بروزرسانی موجودی انبار' },
+    { title: 'مدیریت دسته‌بندی‌ها', icon: TagIcon, href: '/admin/categories', color: 'bg-indigo-500', description: 'افزودن، ویرایش و حذف دسته‌بندی محصولات' },
+    { title: 'مدیریت بنرها', icon: PhotoIcon, href: '/admin/banners', color: 'bg-pink-500', description: 'مدیریت اسلایدرهای صفحه اصلی' },
+    { title: 'گزارشات فروش', icon: ChartBarSquareIcon, href: '/admin/reports', color: 'bg-teal-500', description: 'مشاهده و خروجی گرفتن از گزارشات' },
     { title: 'تنظیمات سایت', icon: Cog6ToothIcon, href: '/admin/settings', color: 'bg-gray-500', description: 'ویرایش اطلاعات فروشگاه' },
   ];
 
@@ -230,7 +238,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* منوی اصلی */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {menuItems.map((item, index) => (
             <Link
               key={index}
@@ -274,6 +282,20 @@ export default function AdminDashboard() {
             >
               <DocumentTextIcon className="w-4 h-4" />
               بروزرسانی موجودی
+            </Link>
+            <Link
+              href="/admin/categories"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600 transition"
+            >
+              <TagIcon className="w-4 h-4" />
+              مدیریت دسته‌بندی‌ها
+            </Link>
+            <Link
+              href="/admin/reports"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-teal-500 text-white rounded-lg hover:bg-teal-600 transition"
+            >
+              <DocumentArrowDownIcon className="w-4 h-4" />
+              گزارشات فروش
             </Link>
             <Link
               href="/admin/settings"
