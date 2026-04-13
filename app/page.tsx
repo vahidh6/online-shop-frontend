@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { matchSorter } from 'match-sorter';
 
 interface Product {
   _id: string;
@@ -12,105 +11,91 @@ interface Product {
   images?: string[];
 }
 
-const categories = [
-  'همه',
-  'قطعات و تعمیرات موبایل',
-  'باتری و شارژ',
-  'محافظ و جانبی',
-  'صدا و تصویر',
-  'سایر',
-];
+const categories = ['همه', 'قطعات و تعمیرات موبایل', 'باتری و شارژ', 'محافظ و جانبی', 'صدا و تصویر', 'سایر'];
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('همه');
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [currentIndex, setCurrentIndex] = useState(0);
 
   // گرفتن دیتا
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch(
-          'https://online-shop-backend-production-27a8.up.railway.app/api/products'
-        );
-
-        if (!res.ok) throw new Error('API Error');
-
+        const res = await fetch('https://online-shop-backend-production-27a8.up.railway.app/api/products');
         const data: Product[] = await res.json();
         setProducts(data);
-      } catch (err) {
-        setError('خطا در دریافت اطلاعات');
+      } catch {
         setProducts([]);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
+    fetchData();
   }, []);
 
-  // فیلتر + سرچ
+  // سرچ ساده
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    // دسته بندی
     if (category !== 'همه') {
-      result = result.filter((p) => p.category === category);
+      result = result.filter(p => p.category === category);
     }
 
-    // سرچ
     if (search.trim()) {
-      result = matchSorter(result, search, {
-        keys: ['name', 'description', 'category'],
-        threshold: matchSorter.rankings.CONTAINS,
-      });
+      const term = search.toLowerCase();
+      result = result.filter(p =>
+        p.name.toLowerCase().includes(term) ||
+        p.description.toLowerCase().includes(term)
+      );
     }
 
     return result;
   }, [products, search, category]);
 
-  // حالت لودینگ
-  if (loading) {
-    return (
-      <div className="text-center py-20 text-gray-500">
-        در حال لود... صبر داشته باش، سرور هم انسان است.
-      </div>
-    );
-  }
+  // اسلاید اتوماتیک
+  useEffect(() => {
+    if (filteredProducts.length === 0) return;
 
-  // حالت خطا
-  if (error) {
-    return (
-      <div className="text-center py-20 text-red-500">
-        {error}
-      </div>
-    );
+    const interval = setInterval(() => {
+      setCurrentIndex(prev =>
+        prev + 1 >= filteredProducts.length ? 0 : prev + 1
+      );
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [filteredProducts]);
+
+  if (loading) {
+    return <div className="text-center py-20">در حال لود...</div>;
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto">
 
       {/* سرچ */}
       <input
         type="text"
-        placeholder="جستجوی محصول..."
+        placeholder="جستجو..."
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="w-full p-3 border rounded-lg mb-6"
+        className="w-full p-3 border rounded mb-4"
       />
 
       {/* دسته بندی */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {categories.map((cat) => (
+      <div className="flex gap-2 flex-wrap mb-6">
+        {categories.map(cat => (
           <button
             key={cat}
-            onClick={() => setCategory(cat)}
-            className={`px-4 py-2 rounded-lg transition ${
-              category === cat
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-200'
+            onClick={() => {
+              setCategory(cat);
+              setCurrentIndex(0);
+            }}
+            className={`px-4 py-2 rounded ${
+              category === cat ? 'bg-blue-600 text-white' : 'bg-gray-200'
             }`}
           >
             {cat}
@@ -118,45 +103,51 @@ export default function Home() {
         ))}
       </div>
 
-      {/* نتیجه */}
-      {filteredProducts.length === 0 ? (
-        <div className="text-center text-gray-500 py-10">
-          چیزی پیدا نشد... یا دیتابیس خالیه یا شانس تو.
+      {/* اسلایدر */}
+      {filteredProducts.length > 0 ? (
+        <div className="relative overflow-hidden">
+
+          <div
+            className="flex transition-all duration-700"
+            style={{
+              transform: `translateX(-${currentIndex * 100}%)`
+            }}
+          >
+            {filteredProducts.map(p => (
+              <div
+                key={p._id}
+                className="min-w-full p-4"
+              >
+                <div className="bg-white rounded-lg shadow p-4 flex gap-4 items-center">
+
+                  <div className="w-32 h-32 bg-gray-100 flex items-center justify-center">
+                    {p.images?.[0] ? (
+                      <img src={p.images[0]} className="h-full object-cover" />
+                    ) : (
+                      <span className="text-3xl">📦</span>
+                    )}
+                  </div>
+
+                  <div>
+                    <h3 className="font-bold text-lg">{p.name}</h3>
+                    <p className="text-gray-500 text-sm">{p.category}</p>
+                    <p className="text-green-600 font-bold mt-2">
+                      {p.price.toLocaleString()} افغانی
+                    </p>
+                  </div>
+
+                </div>
+              </div>
+            ))}
+          </div>
+
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {filteredProducts.map((p) => (
-            <div
-              key={p._id}
-              className="border rounded-lg p-3 shadow hover:shadow-lg transition"
-            >
-              <div className="h-40 bg-gray-100 flex items-center justify-center mb-2">
-                {p.images?.[0] ? (
-                  <img
-                    src={p.images[0]}
-                    alt={p.name}
-                    className="h-full object-cover"
-                  />
-                ) : (
-                  <span className="text-4xl">📦</span>
-                )}
-              </div>
-
-              <h3 className="font-bold text-sm mb-1 line-clamp-2">
-                {p.name}
-              </h3>
-
-              <p className="text-xs text-gray-500 mb-1">
-                {p.category}
-              </p>
-
-              <p className="text-green-600 font-bold">
-                {p.price.toLocaleString()} افغانی
-              </p>
-            </div>
-          ))}
+        <div className="text-center text-gray-500 py-10">
+          چیزی پیدا نشد... زندگی هم همینطوره.
         </div>
       )}
+
     </div>
   );
 }
