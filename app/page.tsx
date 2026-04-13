@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 
 interface Product {
@@ -42,7 +42,8 @@ const categoriesList = [
   { id: 5, name: 'سایر', icon: '📦' },
 ];
 
-const slides = [
+// اسلایدهای تبلیغاتی
+const bannerSlides = [
   { id: 1, title: 'تخفیف ویژه تا ۵۰٪', description: 'بهترین محصولات با بهترین قیمت', image: '🎁', bgColor: '#3b82f6' },
   { id: 2, title: 'ارسال رایگان', description: 'برای خرید بالای ۱۰۰۰۰ افغانی', image: '🚚', bgColor: '#10b981' },
   { id: 3, title: 'محصولات اصل', description: 'ضمانت اصالت کالا', image: '✅', bgColor: '#f59e0b' },
@@ -57,7 +58,8 @@ export default function Home() {
   const [userName, setUserName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('همه');
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentBannerSlide, setCurrentBannerSlide] = useState(0);
+  const [currentProductSlide, setCurrentProductSlide] = useState(0);
   const [settings, setSettings] = useState<Settings>({
     siteName: 'شرکت همراه افغان',
     siteDescription: 'بزرگترین فروشگاه تخصصی در افغانستان',
@@ -79,12 +81,26 @@ export default function Home() {
     maintenanceMessage: 'در حال بروزرسانی، به زودی بازمی‌گردیم'
   });
 
+  // اسکرول خودکار بنر تبلیغاتی
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    const bannerInterval = setInterval(() => {
+      setCurrentBannerSlide((prev) => (prev + 1) % bannerSlides.length);
     }, 5000);
-    return () => clearInterval(interval);
+    return () => clearInterval(bannerInterval);
   }, []);
+
+  // اسکرول خودکار محصولات
+  useEffect(() => {
+    if (filteredProducts.length === 0) return;
+    
+    const productInterval = setInterval(() => {
+      setCurrentProductSlide((prev) => {
+        const maxSlides = Math.ceil(filteredProducts.length / 4);
+        return (prev + 1) % maxSlides;
+      });
+    }, 6000);
+    return () => clearInterval(productInterval);
+  }, [filteredProducts.length]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -145,6 +161,7 @@ export default function Home() {
     }
     
     setFilteredProducts(results);
+    setCurrentProductSlide(0);
   }, [products, searchTerm, selectedCategory]);
 
   const handleLogout = () => {
@@ -154,14 +171,27 @@ export default function Home() {
     window.location.href = '/';
   };
 
-  const goToSlide = (index: number) => {
-    setCurrentSlide(index);
+  const goToBannerSlide = (index: number) => {
+    setCurrentBannerSlide(index);
+  };
+
+  const goToProductSlide = (index: number) => {
+    setCurrentProductSlide(index);
   };
 
   const clearSearch = () => {
     setSearchTerm('');
     setSelectedCategory('همه');
   };
+
+  // دریافت محصولات برای اسلاید جاری
+  const getCurrentProducts = () => {
+    const start = currentProductSlide * 4;
+    const end = start + 4;
+    return filteredProducts.slice(start, end);
+  };
+
+  const totalProductSlides = Math.ceil(filteredProducts.length / 4);
 
   if (settings.isMaintenance) {
     return (
@@ -222,13 +252,13 @@ export default function Home() {
       </header>
 
       <main className="container-custom py-8">
-        {/* اسلایدر */}
+        {/* بنر اسلایدر */}
         <div className="relative mb-12 rounded-2xl overflow-hidden shadow-lg h-80">
-          {slides.map((slide, index) => (
+          {bannerSlides.map((slide, index) => (
             <div
               key={slide.id}
               className={`absolute inset-0 transition-opacity duration-700 ease-in-out flex items-center justify-center text-white p-8 ${
-                index === currentSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                index === currentBannerSlide ? 'opacity-100 z-10' : 'opacity-0 z-0'
               }`}
               style={{ backgroundColor: slide.bgColor }}
             >
@@ -241,12 +271,12 @@ export default function Home() {
           ))}
           
           <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
-            {slides.map((_, index) => (
+            {bannerSlides.map((_, index) => (
               <button
                 key={index}
-                onClick={() => goToSlide(index)}
+                onClick={() => goToBannerSlide(index)}
                 className={`w-3 h-3 rounded-full transition-all ${
-                  index === currentSlide ? 'bg-white w-6' : 'bg-white/50'
+                  index === currentBannerSlide ? 'bg-white w-6' : 'bg-white/50'
                 }`}
               />
             ))}
@@ -258,7 +288,7 @@ export default function Home() {
           <div className="relative max-w-2xl mx-auto">
             <input
               type="text"
-              placeholder="جستجوی محصولات... (مثال: سامسونگ، شارژر، هدفون)"
+              placeholder="جستجوی محصولات..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-5 py-3 pr-12 border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:border-transparent"
@@ -313,7 +343,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* محصولات */}
+        {/* محصولات اسلایدر */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <div className="text-6xl mb-4">🔍</div>
@@ -327,60 +357,98 @@ export default function Home() {
             </button>
           </div>
         ) : (
-          <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {filteredProducts.slice(0, 12).map((product) => (
-                <div key={product._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col h-full">
-                  <div className="bg-gray-100 h-48 flex items-center justify-center overflow-hidden">
-                    {product.images && product.images[0] ? (
-                      <img 
-                        src={product.images[0]} 
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                          const parent = e.currentTarget.parentElement;
-                          if (parent) {
-                            parent.innerHTML = '<span className="text-6xl">📦</span>';
-                          }
-                        }}
-                      />
-                    ) : (
-                      <span className="text-6xl">📦</span>
-                    )}
-                  </div>
-                  <div className="p-4 flex flex-col flex-grow">
-                    <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 min-h-[48px]">{product.name}</h3>
-                    <div className="text-xl font-bold text-green-600 mb-2">{product.price.toLocaleString()} افغانی</div>
-                    <div className="inline-block bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600 mb-3 w-fit">
-                      {product.category}
-                    </div>
-                    <Link 
-                      href={`/products/${product._id}`} 
-                      className="block text-center text-white py-2 rounded-lg transition mt-auto" 
-                      style={{ backgroundColor: settings.secondaryColor }}
-                      onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = settings.primaryColor; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = settings.secondaryColor; }}
-                    >
-                      مشاهده جزئیات
-                    </Link>
-                  </div>
-                </div>
-              ))}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">
+                {selectedCategory === 'همه' ? 'محصولات ویژه' : `محصولات ${selectedCategory}`}
+              </h2>
+              <Link href="/products" className="text-sm hover:underline" style={{ color: settings.primaryColor }}>
+                مشاهده همه ←
+              </Link>
             </div>
             
-            {filteredProducts.length > 12 && (
-              <div className="text-center mt-8">
-                <Link 
-                  href="/products" 
-                  className="inline-block px-8 py-3 rounded-lg font-medium transition"
-                  style={{ backgroundColor: '#f3f4f6', color: settings.primaryColor }}
-                >
-                  مشاهده همه {filteredProducts.length} محصول
-                </Link>
+            <div className="relative">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {getCurrentProducts().map((product) => (
+                  <div key={product._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col h-full">
+                    <div className="bg-gray-100 h-48 flex items-center justify-center overflow-hidden">
+                      {product.images && product.images[0] ? (
+                        <img 
+                          src={product.images[0]} 
+                          alt={product.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              parent.innerHTML = '<span class="text-6xl">📦</span>';
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span className="text-6xl">📦</span>
+                      )}
+                    </div>
+                    <div className="p-4 flex flex-col flex-grow">
+                      <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 min-h-[48px]">{product.name}</h3>
+                      <div className="text-xl font-bold text-green-600 mb-2">{product.price.toLocaleString()} افغانی</div>
+                      <div className="inline-block bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600 mb-3 w-fit">
+                        {product.category}
+                      </div>
+                      <Link 
+                        href={`/products/${product._id}`} 
+                        className="block text-center text-white py-2 rounded-lg transition mt-auto" 
+                        style={{ backgroundColor: settings.secondaryColor }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = settings.primaryColor; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = settings.secondaryColor; }}
+                      >
+                        مشاهده جزئیات
+                      </Link>
+                    </div>
+                  </div>
+                ))}
               </div>
-            )}
-          </>
+              
+              {/* دکمه‌های ناوبری اسلایدر محصولات */}
+              {totalProductSlides > 1 && (
+                <>
+                  <button
+                    onClick={() => goToProductSlide((currentProductSlide - 1 + totalProductSlides) % totalProductSlides)}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 -ml-4 bg-white rounded-full shadow-lg p-2 hover:bg-gray-100 transition z-10"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => goToProductSlide((currentProductSlide + 1) % totalProductSlides)}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 -mr-4 bg-white rounded-full shadow-lg p-2 hover:bg-gray-100 transition z-10"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  
+                  {/* نقطه‌های ناوبری */}
+                  <div className="flex justify-center gap-2 mt-6">
+                    {Array.from({ length: totalProductSlides }).map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => goToProductSlide(index)}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          index === currentProductSlide ? 'w-6' : ''
+                        }`}
+                        style={{ 
+                          backgroundColor: index === currentProductSlide ? settings.primaryColor : '#cbd5e0',
+                          width: index === currentProductSlide ? '24px' : '8px'
+                        }}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
         )}
       </main>
 
