@@ -43,7 +43,7 @@ const categoriesList = [
 ];
 
 // اسلایدهای تبلیغاتی
-const slides = [
+const bannerSlides = [
   { id: 1, title: 'تخفیف ویژه تا ۵۰٪', description: 'بهترین محصولات با بهترین قیمت', image: '🎁', bgColor: '#3b82f6' },
   { id: 2, title: 'ارسال رایگان', description: 'برای خرید بالای ۱۰۰۰۰ افغانی', image: '🚚', bgColor: '#10b981' },
   { id: 3, title: 'محصولات اصل', description: 'ضمانت اصالت کالا', image: '✅', bgColor: '#f59e0b' },
@@ -52,13 +52,13 @@ const slides = [
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userName, setUserName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('همه');
-  const [currentSlide, setCurrentSlide] = useState(0);
+  const [currentBannerSlide, setCurrentBannerSlide] = useState(0);
+  const [currentProductSlide, setCurrentProductSlide] = useState(0);
   const [settings, setSettings] = useState<Settings>({
     siteName: 'شرکت همراه افغان',
     siteDescription: 'بزرگترین فروشگاه تخصصی در افغانستان',
@@ -80,13 +80,23 @@ export default function Home() {
     maintenanceMessage: 'در حال بروزرسانی، به زودی بازمی‌گردیم'
   });
 
-  // اسکرول خودکار با افکت نرم
+  // اسکرول خودکار بنر تبلیغاتی
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
+    const bannerInterval = setInterval(() => {
+      setCurrentBannerSlide((prev) => (prev + 1) % bannerSlides.length);
     }, 5000);
-    return () => clearInterval(interval);
+    return () => clearInterval(bannerInterval);
   }, []);
+
+  // اسکرول خودکار محصولات
+  useEffect(() => {
+    if (filteredProducts.length === 0) return;
+    
+    const productInterval = setInterval(() => {
+      setCurrentProductSlide((prev) => (prev + 1) % Math.ceil(filteredProducts.length / 4));
+    }, 6000);
+    return () => clearInterval(productInterval);
+  }, [filteredProducts.length]);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -129,25 +139,16 @@ export default function Home() {
   }, []);
 
   // جستجو و فیلتر
-  useEffect(() => {
-    if (products.length === 0) return;
-    
-    let results = [...products];
-    
-    if (selectedCategory !== 'همه') {
-      results = results.filter(p => p.category === selectedCategory);
-    }
-    
-    if (searchTerm.trim() !== '') {
-      const term = searchTerm.toLowerCase().trim();
-      results = results.filter(p => 
-        p.name.toLowerCase().includes(term) || 
-        (p.description && p.description.toLowerCase().includes(term))
-      );
-    }
-    
-    setFilteredProducts(results);
-  }, [products, searchTerm, selectedCategory]);
+  const filteredProducts = products.filter(product => {
+    const matchesCategory = selectedCategory === 'همه' || product.category === selectedCategory;
+    const matchesSearch = searchTerm === '' || 
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
+
+  const totalProductSlides = Math.ceil(filteredProducts.length / 4);
+  const currentProducts = filteredProducts.slice(currentProductSlide * 4, (currentProductSlide * 4) + 4);
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -156,13 +157,18 @@ export default function Home() {
     window.location.href = '/';
   };
 
-  const goToSlide = (index: number) => {
-    setCurrentSlide(index);
+  const goToBannerSlide = (index: number) => {
+    setCurrentBannerSlide(index);
+  };
+
+  const goToProductSlide = (index: number) => {
+    setCurrentProductSlide(index);
   };
 
   const clearSearch = () => {
     setSearchTerm('');
     setSelectedCategory('همه');
+    setCurrentProductSlide(0);
   };
 
   if (settings.isMaintenance) {
@@ -224,31 +230,30 @@ export default function Home() {
       </header>
 
       <main className="container-custom py-8">
-        {/* اسلایدر نرم */}
+        {/* اسلایدر تبلیغاتی */}
         <div className="relative mb-12 rounded-2xl overflow-hidden shadow-lg h-80">
-          {slides.map((slide, index) => (
+          {bannerSlides.map((slide, index) => (
             <div
               key={slide.id}
               className={`absolute inset-0 transition-all duration-700 ease-in-out transform flex items-center justify-center text-white p-8 ${
-                index === currentSlide 
+                index === currentBannerSlide 
                   ? 'opacity-100 translate-x-0 z-10' 
-                  : index < currentSlide 
+                  : index < currentBannerSlide 
                     ? 'opacity-0 -translate-x-full z-0' 
                     : 'opacity-0 translate-x-full z-0'
               }`}
               style={{ backgroundColor: slide.bgColor }}
             >
-              <div className="text-center transform transition-all duration-700">
-                <div className="text-7xl mb-4 scale-100 transition-transform duration-500">{slide.image}</div>
-                <h2 className="text-3xl md:text-4xl font-bold mb-2 translate-y-0 transition-transform duration-500">{slide.title}</h2>
-                <p className="text-lg md:text-xl transition-all duration-500">{slide.description}</p>
+              <div className="text-center">
+                <div className="text-7xl mb-4">{slide.image}</div>
+                <h2 className="text-3xl md:text-4xl font-bold mb-2">{slide.title}</h2>
+                <p className="text-lg md:text-xl">{slide.description}</p>
               </div>
             </div>
           ))}
           
-          {/* دکمه‌های ناوبری */}
           <button
-            onClick={() => goToSlide((currentSlide - 1 + slides.length) % slides.length)}
+            onClick={() => goToBannerSlide((currentBannerSlide - 1 + bannerSlides.length) % bannerSlides.length)}
             className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 backdrop-blur-sm rounded-full p-2 transition-all duration-300 hover:scale-110"
           >
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -256,7 +261,7 @@ export default function Home() {
             </svg>
           </button>
           <button
-            onClick={() => goToSlide((currentSlide + 1) % slides.length)}
+            onClick={() => goToBannerSlide((currentBannerSlide + 1) % bannerSlides.length)}
             className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 backdrop-blur-sm rounded-full p-2 transition-all duration-300 hover:scale-110"
           >
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -264,14 +269,13 @@ export default function Home() {
             </svg>
           </button>
           
-          {/* نقطه‌های ناوبری */}
           <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
-            {slides.map((_, index) => (
+            {bannerSlides.map((_, index) => (
               <button
                 key={index}
-                onClick={() => goToSlide(index)}
+                onClick={() => goToBannerSlide(index)}
                 className={`transition-all duration-300 rounded-full ${
-                  index === currentSlide 
+                  index === currentBannerSlide 
                     ? 'bg-white w-8 h-2' 
                     : 'bg-white/50 w-2 h-2 hover:bg-white/80 hover:w-4'
                 }`}
@@ -300,12 +304,6 @@ export default function Home() {
               </button>
             )}
           </div>
-          
-          {searchTerm && (
-            <div className="text-center mt-2 text-sm text-gray-500">
-              <span>{filteredProducts.length} نتیجه یافت شد</span>
-            </div>
-          )}
         </div>
 
         {/* دسته‌بندی */}
@@ -340,7 +338,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* محصولات */}
+        {/* اسلایدر محصولات */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <div className="text-6xl mb-4">🔍</div>
@@ -354,45 +352,97 @@ export default function Home() {
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filteredProducts.slice(0, 12).map((product) => (
-              <div key={product._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col h-full group">
-                <div className="bg-gray-100 h-48 flex items-center justify-center overflow-hidden relative">
-                  {product.images && product.images[0] ? (
-                    <img 
-                      src={product.images[0]} 
-                      alt={product.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                        const parent = e.currentTarget.parentElement;
-                        if (parent) {
-                          parent.innerHTML = '<span class="text-6xl">📦</span>';
-                        }
-                      }}
-                    />
-                  ) : (
-                    <span className="text-6xl transition-transform duration-500 group-hover:scale-110">📦</span>
-                  )}
-                </div>
-                <div className="p-4 flex flex-col flex-grow">
-                  <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 min-h-[48px] group-hover:text-blue-600 transition-colors">{product.name}</h3>
-                  <div className="text-xl font-bold text-green-600 mb-2">{product.price.toLocaleString()} افغانی</div>
-                  <div className="inline-block bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600 mb-3 w-fit">
-                    {product.category}
+          <div>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-2xl font-bold text-gray-800">
+                {selectedCategory === 'همه' ? 'محصولات ویژه' : `محصولات ${selectedCategory}`}
+              </h2>
+              <Link href="/products" className="text-sm hover:underline" style={{ color: settings.primaryColor }}>
+                مشاهده همه ←
+              </Link>
+            </div>
+            
+            <div className="relative">
+              {/* محصولات در قالب اسلایدر */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {currentProducts.map((product) => (
+                  <div key={product._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col h-full group">
+                    <div className="bg-gray-100 h-48 flex items-center justify-center overflow-hidden">
+                      {product.images && product.images[0] ? (
+                        <img 
+                          src={product.images[0]} 
+                          alt={product.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              parent.innerHTML = '<span class="text-6xl">📦</span>';
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span className="text-6xl transition-transform duration-500 group-hover:scale-110">📦</span>
+                      )}
+                    </div>
+                    <div className="p-4 flex flex-col flex-grow">
+                      <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 min-h-[48px] group-hover:text-blue-600 transition-colors">{product.name}</h3>
+                      <div className="text-xl font-bold text-green-600 mb-2">{product.price.toLocaleString()} افغانی</div>
+                      <div className="inline-block bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600 mb-3 w-fit">
+                        {product.category}
+                      </div>
+                      <Link 
+                        href={`/products/${product._id}`} 
+                        className="block text-center text-white py-2 rounded-lg transition-all duration-300 mt-auto hover:shadow-md" 
+                        style={{ backgroundColor: settings.secondaryColor }}
+                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = settings.primaryColor; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = settings.secondaryColor; }}
+                      >
+                        مشاهده جزئیات
+                      </Link>
+                    </div>
                   </div>
-                  <Link 
-                    href={`/products/${product._id}`} 
-                    className="block text-center text-white py-2 rounded-lg transition-all duration-300 mt-auto hover:shadow-md" 
-                    style={{ backgroundColor: settings.secondaryColor }}
-                    onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = settings.primaryColor; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = settings.secondaryColor; }}
-                  >
-                    مشاهده جزئیات
-                  </Link>
-                </div>
+                ))}
               </div>
-            ))}
+              
+              {/* دکمه‌های ناوبری اسلایدر محصولات */}
+              {totalProductSlides > 1 && (
+                <>
+                  <button
+                    onClick={() => goToProductSlide((currentProductSlide - 1 + totalProductSlides) % totalProductSlides)}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 -ml-4 bg-white rounded-full shadow-lg p-2 hover:bg-gray-100 transition-all duration-300 hover:scale-110 z-10"
+                  >
+                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                  </button>
+                  <button
+                    onClick={() => goToProductSlide((currentProductSlide + 1) % totalProductSlides)}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 -mr-4 bg-white rounded-full shadow-lg p-2 hover:bg-gray-100 transition-all duration-300 hover:scale-110 z-10"
+                  >
+                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                  
+                  {/* نقطه‌های ناوبری */}
+                  <div className="flex justify-center gap-2 mt-6">
+                    {Array.from({ length: totalProductSlides }).map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => goToProductSlide(index)}
+                        className={`transition-all duration-300 rounded-full ${
+                          index === currentProductSlide 
+                            ? 'w-6 h-2' 
+                            : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'
+                        }`}
+                        style={{ backgroundColor: index === currentProductSlide ? settings.primaryColor : '#cbd5e0' }}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         )}
       </main>
