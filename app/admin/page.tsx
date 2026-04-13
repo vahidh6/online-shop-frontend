@@ -3,22 +3,60 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { 
+  ShoppingBagIcon, 
+  CurrencyDollarIcon, 
+  UserGroupIcon, 
+  ChartBarIcon,
+  CubeIcon,
+  Cog6ToothIcon,
+  ArrowRightOnRectangleIcon,
+  PlusCircleIcon,
+  DocumentTextIcon
+} from '@heroicons/react/24/outline';
+
+interface Stats {
+  totalOrders: number;
+  totalProducts: number;
+  totalUsers: number;
+  totalRevenue: number;
+  pendingOrders: number;
+  lowStock: number;
+}
 
 export default function AdminDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({
+  const [userName, setUserName] = useState('');
+  const [stats, setStats] = useState<Stats>({
     totalOrders: 0,
     totalProducts: 0,
-    totalRevenue: 0
+    totalUsers: 0,
+    totalRevenue: 0,
+    pendingOrders: 0,
+    lowStock: 0
   });
 
   useEffect(() => {
     const token = localStorage.getItem('token');
+    const user = localStorage.getItem('user');
+    
     if (!token) {
       router.push('/admin/login');
       return;
     }
+    
+    try {
+      const userData = JSON.parse(user || '{}');
+      if (userData.role !== 'admin') {
+        router.push('/');
+        return;
+      }
+      setUserName(userData.name || 'مدیر');
+    } catch (e) {
+      router.push('/admin/login');
+    }
+    
     fetchStats();
   }, [router]);
 
@@ -27,25 +65,31 @@ export default function AdminDashboard() {
     const token = localStorage.getItem('token');
     
     try {
-      // دریافت سفارشات
-      const ordersRes = await fetch(`${apiUrl}/api/orders`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const [ordersRes, productsRes, usersRes] = await Promise.all([
+        fetch(`${apiUrl}/api/orders`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        fetch(`${apiUrl}/api/products`),
+        fetch(`${apiUrl}/api/users`, { headers: { 'Authorization': `Bearer ${token}` } })
+      ]);
+      
       const orders = await ordersRes.json();
-      
-      // دریافت محصولات
-      const productsRes = await fetch(`${apiUrl}/api/products`);
       const products = await productsRes.json();
+      const users = await usersRes.json();
       
-      // محاسبه درآمد
       const revenue = orders
         .filter((order: any) => order.status === 'delivered' || order.status === 'payment_verified')
         .reduce((sum: number, order: any) => sum + order.totalAmount, 0);
       
+      const pendingOrders = orders.filter((order: any) => 
+        order.status === 'pending_payment' || order.status === 'payment_uploaded'
+      ).length;
+      
       setStats({
         totalOrders: orders.length,
         totalProducts: products.length,
-        totalRevenue: revenue
+        totalUsers: users.length || 0,
+        totalRevenue: revenue,
+        pendingOrders: pendingOrders,
+        lowStock: 0
       });
     } catch (error) {
       console.error('Error fetching stats:', error);
@@ -62,57 +106,183 @@ export default function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="flex justify-center items-center min-h-screen bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
+  const menuItems = [
+    { title: 'مدیریت محصولات', icon: CubeIcon, href: '/admin/products', color: 'bg-blue-500', description: 'افزودن، ویرایش و حذف محصولات' },
+    { title: 'مدیریت سفارشات', icon: ShoppingBagIcon, href: '/admin/orders', color: 'bg-green-500', description: 'مشاهده و بروزرسانی وضعیت سفارشات' },
+    { title: 'مدیریت کاربران', icon: UserGroupIcon, href: '/admin/users', color: 'bg-purple-500', description: 'مدیریت کاربران و دسترسی‌ها' },
+    { title: 'مدیریت موجودی', icon: DocumentTextIcon, href: '/admin/inventory', color: 'bg-yellow-500', description: 'بروزرسانی موجودی انبار' },
+    { title: 'تنظیمات سایت', icon: Cog6ToothIcon, href: '/admin/settings', color: 'bg-gray-500', description: 'ویرایش اطلاعات فروشگاه' },
+  ];
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="bg-white shadow">
-        <div className="container-custom py-4 flex justify-between items-center">
-          <h1 className="text-xl font-bold">🎛️ پنل مدیریت</h1>
-          <button onClick={handleLogout} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
-            خروج
+    <div className="min-h-screen bg-gray-50">
+      {/* هدر */}
+      <header className="bg-white shadow-sm sticky top-0 z-50">
+        <div className="px-6 py-4 flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-800">🎛️ پنل مدیریت</h1>
+            <p className="text-sm text-gray-500">خوش آمدید، {userName}</p>
+          </div>
+          <button 
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
+          >
+            <ArrowRightOnRectangleIcon className="w-5 h-5" />
+            <span>خروج</span>
           </button>
         </div>
-      </div>
-      
-      <div className="container-custom py-8">
+      </header>
+
+      <div className="p-6">
         {/* آمار کارت‌ها */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-4xl mb-2">📦</div>
-            <div className="text-2xl font-bold">{stats.totalOrders}</div>
-            <div className="text-gray-600">کل سفارشات</div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm">کل سفارشات</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">{stats.totalOrders}</p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-lg">
+                <ShoppingBagIcon className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+            <div className="mt-3 text-xs text-gray-400">
+              {stats.pendingOrders} سفارش در انتظار
+            </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-4xl mb-2">🛍️</div>
-            <div className="text-2xl font-bold">{stats.totalProducts}</div>
-            <div className="text-gray-600">کل محصولات</div>
+
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm">کل محصولات</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">{stats.totalProducts}</p>
+              </div>
+              <div className="bg-green-100 p-3 rounded-lg">
+                <CubeIcon className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+            <div className="mt-3 text-xs text-gray-400">
+              {stats.lowStock} محصول با موجودی کم
+            </div>
           </div>
-          <div className="bg-white rounded-lg shadow p-6 text-center">
-            <div className="text-4xl mb-2">💰</div>
-            <div className="text-2xl font-bold">{stats.totalRevenue.toLocaleString()} افغانی</div>
-            <div className="text-gray-600">درآمد کل</div>
+
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm">کل کاربران</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">{stats.totalUsers}</p>
+              </div>
+              <div className="bg-purple-100 p-3 rounded-lg">
+                <UserGroupIcon className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm">درآمد کل</p>
+                <p className="text-2xl font-bold text-green-600 mt-1">{stats.totalRevenue.toLocaleString()} افغانی</p>
+              </div>
+              <div className="bg-yellow-100 p-3 rounded-lg">
+                <CurrencyDollarIcon className="w-6 h-6 text-yellow-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm">میانگین سفارش</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">
+                  {stats.totalOrders > 0 
+                    ? Math.round(stats.totalRevenue / stats.totalOrders).toLocaleString() 
+                    : 0} افغانی
+                </p>
+              </div>
+              <div className="bg-indigo-100 p-3 rounded-lg">
+                <ChartBarIcon className="w-6 h-6 text-indigo-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100 hover:shadow-md transition">
+            <div className="flex justify-between items-start">
+              <div>
+                <p className="text-gray-500 text-sm">نرخ تکمیل</p>
+                <p className="text-2xl font-bold text-gray-800 mt-1">
+                  {stats.totalOrders > 0 
+                    ? Math.round((stats.totalOrders - stats.pendingOrders) / stats.totalOrders * 100) 
+                    : 0}%
+                </p>
+              </div>
+              <div className="bg-teal-100 p-3 rounded-lg">
+                <ChartBarIcon className="w-6 h-6 text-teal-600" />
+              </div>
+            </div>
           </div>
         </div>
-        
-        {/* منوی مدیریت */}
-        <div className="grid md:grid-cols-3 gap-6">
-          <Link href="/admin/products" className="bg-blue-600 text-white p-6 rounded-lg text-center hover:bg-blue-700 transition">
-            <div className="text-3xl mb-2">📦</div>
-            <div className="font-bold">مدیریت محصولات</div>
-          </Link>
-          <Link href="/admin/orders" className="bg-green-600 text-white p-6 rounded-lg text-center hover:bg-green-700 transition">
-            <div className="text-3xl mb-2">📋</div>
-            <div className="font-bold">مدیریت سفارشات</div>
-          </Link>
-          <Link href="/admin/settings" className="bg-purple-600 text-white p-6 rounded-lg text-center hover:bg-purple-700 transition">
-            <div className="text-3xl mb-2">⚙️</div>
-            <div className="font-bold">تنظیمات سایت</div>
-          </Link>
+
+        {/* منوی اصلی */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {menuItems.map((item, index) => (
+            <Link
+              key={index}
+              href={item.href}
+              className="group bg-white rounded-xl shadow-sm border border-gray-100 p-6 hover:shadow-lg transition-all hover:-translate-y-1"
+            >
+              <div className="flex items-start gap-4">
+                <div className={`${item.color} p-3 rounded-xl text-white group-hover:scale-110 transition`}>
+                  <item.icon className="w-6 h-6" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-800 text-lg">{item.title}</h3>
+                  <p className="text-gray-500 text-sm mt-1">{item.description}</p>
+                </div>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* اقدامات سریع */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <h3 className="font-bold text-gray-800 mb-4">⚡ اقدامات سریع</h3>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href="/admin/products/new"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+            >
+              <PlusCircleIcon className="w-4 h-4" />
+              افزودن محصول جدید
+            </Link>
+            <Link
+              href="/admin/orders"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+            >
+              <ShoppingBagIcon className="w-4 h-4" />
+              مشاهده سفارشات جدید
+            </Link>
+            <Link
+              href="/admin/inventory"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition"
+            >
+              <DocumentTextIcon className="w-4 h-4" />
+              بروزرسانی موجودی
+            </Link>
+            <Link
+              href="/admin/settings"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+            >
+              <Cog6ToothIcon className="w-4 h-4" />
+              تنظیمات سایت
+            </Link>
+          </div>
         </div>
       </div>
     </div>
