@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 
 interface Order {
   _id: string;
@@ -15,6 +16,7 @@ interface Order {
   totalAmount: number;
   status: string;
   paymentMethod: string;
+  province: string;
   paymentReceipt?: {
     referenceNumber: string;
     bankName: string;
@@ -30,6 +32,7 @@ export default function AdminOrders() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -49,7 +52,7 @@ export default function AdminOrders() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
-      setOrders(data);
+      setOrders(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -57,7 +60,8 @@ export default function AdminOrders() {
     }
   };
 
-  const updateStatus = async (id: string, status: string) => {
+  const updateStatus = async (id: string, newStatus: string) => {
+    setUpdating(id);
     const token = localStorage.getItem('token');
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
     
@@ -68,15 +72,21 @@ export default function AdminOrders() {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ status })
+        body: JSON.stringify({ status: newStatus })
       });
       
       if (res.ok) {
-        fetchOrders();
-        alert('وضعیت سفارش بروزرسانی شد');
+        await fetchOrders();
+        alert('وضعیت سفارش با موفقیت تغییر کرد');
+      } else {
+        const error = await res.json();
+        alert(error.message || 'خطا در تغییر وضعیت');
       }
     } catch (error) {
       console.error('Error:', error);
+      alert('خطا در ارتباط با سرور');
+    } finally {
+      setUpdating(null);
     }
   };
 
@@ -125,11 +135,19 @@ export default function AdminOrders() {
 
   return (
     <div className="container-custom py-8">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">📋 مدیریت سفارشات</h1>
-        <Link href="/admin" className="text-gray-600">← بازگشت به داشبورد</Link>
+      {/* دکمه برگشت */}
+      <div className="mb-6">
+        <Link 
+          href="/admin" 
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-blue-600 transition"
+        >
+          <ArrowLeftIcon className="w-5 h-5" />
+          <span>بازگشت به داشبورد</span>
+        </Link>
       </div>
-      
+
+      <h1 className="text-2xl font-bold mb-6">📋 مدیریت سفارشات</h1>
+
       <div className="bg-white rounded-lg shadow overflow-x-auto">
         <table className="w-full min-w-[1200px]">
           <thead className="bg-gray-100">
@@ -140,15 +158,15 @@ export default function AdminOrders() {
               <th className="p-3 text-right">وضعیت</th>
               <th className="p-3 text-right">روش پرداخت</th>
               <th className="p-3 text-right">نام صرافی/بانک</th>
-              <th className="p-3 text-right">شماره پیگیری/حواله</th>
+              <th className="p-3 text-right">شماره پیگیری</th>
               <th className="p-3 text-right">تاریخ</th>
               <th className="p-3 text-right">عملیات</th>
             </tr>
           </thead>
           <tbody>
             {orders.map(order => (
-              <tr key={order._id} className="border-t">
-                <td className="p-3">{order.orderNumber || order._id.slice(-8)}</td>
+              <tr key={order._id} className="border-t hover:bg-gray-50">
+                <td className="p-3 font-mono text-sm">{order.orderNumber || order._id.slice(-8)}</td>
                 <td className="p-3">{order.customerId?.name || '-'}</td>
                 <td className="p-3 font-bold text-green-600">{order.totalAmount.toLocaleString()} افغانی</td>
                 <td className="p-3">
@@ -156,7 +174,7 @@ export default function AdminOrders() {
                     {getStatusText(order.status)}
                   </span>
                 </td>
-                <td className="p-3">{getPaymentMethodText(order.paymentMethod)}</td>
+                <td className="p-3 text-sm">{getPaymentMethodText(order.paymentMethod)}</td>
                 <td className="p-3">
                   {order.paymentReceipt?.exchangeName && (
                     <div className="text-sm">{order.paymentReceipt.exchangeName}</div>
@@ -177,12 +195,13 @@ export default function AdminOrders() {
                     <span className="text-gray-400 text-sm">---</span>
                   )}
                 </td>
-                <td className="p-3">{new Date(order.createdAt).toLocaleDateString('fa-IR')}</td>
+                <td className="p-3 text-sm">{new Date(order.createdAt).toLocaleDateString('fa-IR')}</td>
                 <td className="p-3">
                   <select
                     value={order.status}
                     onChange={(e) => updateStatus(order._id, e.target.value)}
-                    className="px-2 py-1 border rounded text-sm"
+                    disabled={updating === order._id}
+                    className="px-2 py-1 border rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="pending_payment">در انتظار پرداخت</option>
                     <option value="payment_uploaded">رسید ارسال شده</option>
@@ -197,6 +216,12 @@ export default function AdminOrders() {
             ))}
           </tbody>
         </table>
+
+        {orders.length === 0 && (
+          <div className="text-center py-8">
+            <p className="text-gray-500">هیچ سفارشی یافت نشد</p>
+          </div>
+        )}
       </div>
     </div>
   );
