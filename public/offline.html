@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>بدون اتصال به اینترنت</title>
+  <style>
+    body {
+      font-family: Tahoma, sans-serif;
+      text-align: center;
+      padding: 50px;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    h1 { color: #e53e3e; }
+    p { color: #666; }
+    .offline-icon { font-size: 80px; margin-bottom: 20px; }
+    button {
+      background: #e53e3e;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 20px;
+    }
+    button:hover { opacity: 0.9; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="offline-icon">📡</div>
+    <h1>بدون اتصال به اینترنت</h1>
+    <p>لطفاً اتصال خود را بررسی کنید و دوباره تلاش نمایید.</p>
+    <button onclick="location.reload()">تلاش مجدد</button>
+  </div>
+</body>
+</html>
