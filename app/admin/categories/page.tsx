@@ -34,7 +34,7 @@ export default function AdminCategories() {
     const token = localStorage.getItem('token');
     
     try {
-      const res = await fetch(`${apiUrl}/api/categories/all`, {
+      const res = await fetch(`${apiUrl}/api/categories`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await res.json();
