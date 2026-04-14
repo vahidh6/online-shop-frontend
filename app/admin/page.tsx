@@ -69,15 +69,46 @@ export default function AdminDashboard() {
     const token = localStorage.getItem('token');
     
     try {
-      const [ordersRes, productsRes, usersRes] = await Promise.all([
-        fetch(`${apiUrl}/api/orders`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch(`${apiUrl}/api/products`),
-        fetch(`${apiUrl}/api/users`, { headers: { 'Authorization': `Bearer ${token}` } })
-      ]);
+      // دریافت سفارشات
+      const ordersRes = await fetch(`${apiUrl}/api/orders`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       
-      const orders = await ordersRes.json();
-      const products = await productsRes.json();
-      const users = await usersRes.json();
+      // دریافت محصولات
+      const productsRes = await fetch(`${apiUrl}/api/products`);
+      
+      // دریافت کاربران (با مدیریت خطا)
+      let users: any[] = [];
+      try {
+        const usersRes = await fetch(`${apiUrl}/api/users`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (usersRes.ok) {
+          const usersData = await usersRes.json();
+          if (Array.isArray(usersData)) {
+            users = usersData;
+          } else {
+            console.error('Users data is not an array:', usersData);
+          }
+        } else {
+          console.error('Failed to fetch users:', usersRes.status, usersRes.statusText);
+        }
+      } catch (userError) {
+        console.error('Error fetching users:', userError);
+      }
+      
+      // پردازش سفارشات
+      let orders: any[] = [];
+      if (ordersRes.ok) {
+        orders = await ordersRes.json();
+      }
+      
+      // پردازش محصولات
+      let products: any[] = [];
+      if (productsRes.ok) {
+        products = await productsRes.json();
+      }
       
       const revenue = orders
         .filter((order: any) => order.status === 'delivered' || order.status === 'payment_verified')
@@ -116,7 +147,7 @@ export default function AdminDashboard() {
     );
   }
 
-  // منوی اصلی - آیتم‌های جدید اضافه شده
+  // منوی اصلی
   const menuItems = [
     { title: 'مدیریت محصولات', icon: CubeIcon, href: '/admin/products', color: 'bg-blue-500', description: 'افزودن، ویرایش و حذف محصولات' },
     { title: 'مدیریت سفارشات', icon: ShoppingBagIcon, href: '/admin/orders', color: 'bg-green-500', description: 'مشاهده و بروزرسانی وضعیت سفارشات' },
@@ -174,9 +205,6 @@ export default function AdminDashboard() {
               <div className="bg-green-100 p-3 rounded-lg">
                 <CubeIcon className="w-6 h-6 text-green-600" />
               </div>
-            </div>
-            <div className="mt-3 text-xs text-gray-400">
-              {stats.lowStock} محصول با موجودی کم
             </div>
           </div>
 
