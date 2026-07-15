@@ -36,7 +36,6 @@ export default function NewProduct() {
       ...formData,
       [e.target.name]: e.target.value
     });
-    // پاک کردن خطا هنگام تغییر
     if (error) setError(null);
   };
 
@@ -67,7 +66,7 @@ export default function NewProduct() {
       return;
     }
 
-    if (!formData.price || parseInt(formData.price) <= 0) {
+    if (!formData.price || parseFloat(formData.price) <= 0) {
       setError('قیمت محصول باید بیشتر از صفر باشد');
       setLoading(false);
       return;
@@ -80,11 +79,10 @@ export default function NewProduct() {
     }
 
     try {
-      // ============ آماده سازی داده‌ها ============
       const productData = {
         name: formData.name.trim(),
         description: formData.description.trim(),
-        price: parseInt(formData.price),
+        price: parseFloat(formData.price),
         category: formData.category,
         images: formData.imageUrl ? [formData.imageUrl] : []
       };
@@ -108,6 +106,8 @@ export default function NewProduct() {
 
   // ============ رندر ============
   if (!settings) return null;
+
+  const primaryColor = settings?.primaryColor || '#e53e3e';
 
   return (
     <div className="container-custom py-8 max-w-2xl">
@@ -145,11 +145,12 @@ export default function NewProduct() {
               value={formData.name}
               onChange={handleChange}
               placeholder="مثال: گوشی آیفون 13"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${
+                error && !formData.name ? 'border-red-500' : 'border-gray-300'
+              }`}
               style={{ 
-                borderColor: error && !formData.name ? '#ef4444' : undefined,
-                focusRingColor: settings?.primaryColor || '#e53e3e' 
-              }}
+                '--tw-ring-color': primaryColor,
+              } as React.CSSProperties}
             />
           </div>
           
@@ -165,11 +166,12 @@ export default function NewProduct() {
               value={formData.description}
               onChange={handleChange}
               placeholder="توضیحات کامل محصول..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${
+                error && !formData.description ? 'border-red-500' : 'border-gray-300'
+              }`}
               style={{ 
-                borderColor: error && !formData.description ? '#ef4444' : undefined,
-                focusRingColor: settings?.primaryColor || '#e53e3e' 
-              }}
+                '--tw-ring-color': primaryColor,
+              } as React.CSSProperties}
             />
           </div>
           
@@ -183,19 +185,18 @@ export default function NewProduct() {
               name="price"
               required
               min="0"
-              step="1"
+              step="0.01"
               value={formData.price}
               onChange={handleChange}
               placeholder="مثال: 50000"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${
+                error && !formData.price ? 'border-red-500' : 'border-gray-300'
+              }`}
               style={{ 
-                borderColor: error && !formData.price ? '#ef4444' : undefined,
-                focusRingColor: settings?.primaryColor || '#e53e3e' 
-              }}
+                '--tw-ring-color': primaryColor,
+              } as React.CSSProperties}
             />
-            <p className="text-xs text-gray-500 mt-1">
-              قیمت به افغانی وارد کنید
-            </p>
+            <p className="text-xs text-gray-500 mt-1">قیمت به افغانی وارد کنید</p>
           </div>
           
           {/* ============ دسته‌بندی ============ */}
@@ -208,11 +209,12 @@ export default function NewProduct() {
               required
               value={formData.category}
               onChange={handleChange}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+              className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${
+                error && !formData.category ? 'border-red-500' : 'border-gray-300'
+              }`}
               style={{ 
-                borderColor: error && !formData.category ? '#ef4444' : undefined,
-                focusRingColor: settings?.primaryColor || '#e53e3e' 
-              }}
+                '--tw-ring-color': primaryColor,
+              } as React.CSSProperties}
             >
               <option value="">انتخاب دسته‌بندی</option>
               {CATEGORIES.map(cat => (
@@ -224,7 +226,7 @@ export default function NewProduct() {
           {/* ============ آدرس تصویر ============ */}
           <div className="mb-6">
             <label className="block text-sm font-medium mb-1">
-              آدرس تصویر محصول
+              آدرس تصویر محصول (اختیاری)
             </label>
             <input
               type="text"
@@ -233,7 +235,9 @@ export default function NewProduct() {
               onChange={handleChange}
               placeholder="https://example.com/image.jpg"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
-              style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+              style={{ 
+                '--tw-ring-color': primaryColor,
+              } as React.CSSProperties}
             />
             <p className="text-xs text-gray-500 mt-1">
               اگر خالی بگذارید، آیکون پیش‌فرض نمایش داده می‌شود
@@ -268,7 +272,7 @@ export default function NewProduct() {
               type="submit"
               disabled={loading}
               className="flex-1 text-white py-2 rounded-lg transition disabled:opacity-50 hover:opacity-90"
-              style={{ backgroundColor: settings?.primaryColor || '#e53e3e' }}
+              style={{ backgroundColor: primaryColor }}
             >
               {loading ? '⏳ در حال ذخیره...' : '💾 ذخیره محصول'}
             </button>

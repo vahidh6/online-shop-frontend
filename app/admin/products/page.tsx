@@ -8,7 +8,7 @@ import { api } from '@/services/api';
 import { useSettings } from '@/context/SettingsContext';
 
 interface Product {
-  id: number;        // ✅ API عددی برمی‌گرداند
+  id: number;
   name: string;
   price: number;
   category: string;
@@ -118,6 +118,8 @@ export default function AdminProducts() {
 
   if (!settings) return null;
 
+  const primaryColor = settings?.primaryColor || '#e53e3e';
+
   return (
     <div className="container-custom py-8">
       {/* ============ هدر ============ */}
@@ -169,16 +171,20 @@ export default function AdminProducts() {
               placeholder="جستجوی محصول..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-              style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+              style={{ 
+                '--tw-ring-color': primaryColor,
+              } as React.CSSProperties}
             />
           </div>
           <div className="min-w-[150px]">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-              style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+              style={{ 
+                '--tw-ring-color': primaryColor,
+              } as React.CSSProperties}
             >
               {categories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
@@ -270,7 +276,6 @@ export default function AdminProducts() {
                     </td>
                     <td className="p-3">
                       <div className="flex gap-2">
-                        {/* ✅ استفاده از product.id (عددی) به جای product._id */}
                         <Link 
                           href={`/admin/products/edit/${product.id}`} 
                           className="text-blue-600 hover:text-blue-800 transition px-2 py-1 rounded hover:bg-blue-50"

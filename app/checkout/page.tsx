@@ -9,7 +9,7 @@ import { useSettings } from '@/context/SettingsContext';
 import { PROVINCES } from '@/services/constants';
 
 interface CartItem {
-  id: number;        // ✅ عددی
+  id: number;
   name: string;
   price: number;
   quantity: number;
@@ -95,7 +95,6 @@ export default function CheckoutPage() {
     if (savedCart) {
       try {
         const parsedCart = JSON.parse(savedCart);
-        // ✅ تبدیل _id به id برای هماهنگی با API
         const formattedCart = parsedCart.map((item: any) => ({
           id: item._id || item.id,
           name: item.name,
@@ -237,10 +236,9 @@ export default function CheckoutPage() {
     }
 
     try {
-      // ============ آماده سازی داده‌ها ============
       const orderData = {
         items: cart.map(item => ({
-          productId: item.id,  // ✅ عددی
+          productId: item.id,
           productName: item.name,
           quantity: item.quantity,
           price: item.price
@@ -306,6 +304,8 @@ export default function CheckoutPage() {
     );
   }
 
+  const primaryColor = settings?.primaryColor || '#e53e3e';
+
   return (
     <div className="container-custom py-8">
       <h1 className="text-2xl font-bold mb-6">📝 تکمیل سفارش</h1>
@@ -335,8 +335,10 @@ export default function CheckoutPage() {
                 required
                 value={customerInfo.name}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                style={{ 
+                  '--tw-ring-color': primaryColor,
+                } as React.CSSProperties}
               />
             </div>
             
@@ -350,8 +352,10 @@ export default function CheckoutPage() {
                 required
                 value={customerInfo.email}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                style={{ 
+                  '--tw-ring-color': primaryColor,
+                } as React.CSSProperties}
               />
             </div>
             
@@ -365,8 +369,10 @@ export default function CheckoutPage() {
                 required
                 value={customerInfo.phone}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                style={{ 
+                  '--tw-ring-color': primaryColor,
+                } as React.CSSProperties}
               />
             </div>
             
@@ -377,8 +383,10 @@ export default function CheckoutPage() {
               <select
                 value={selectedProvinceId}
                 onChange={handleProvinceChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                style={{ 
+                  '--tw-ring-color': primaryColor,
+                } as React.CSSProperties}
                 required
               >
                 <option value="">انتخاب ولایت</option>
@@ -398,8 +406,10 @@ export default function CheckoutPage() {
                 <select
                   value={customerInfo.district}
                   onChange={handleDistrictChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                  style={{ 
+                    '--tw-ring-color': primaryColor,
+                  } as React.CSSProperties}
                   required
                 >
                   <option value="">انتخاب ولسوالی</option>
@@ -422,8 +432,10 @@ export default function CheckoutPage() {
                 rows={3}
                 value={customerInfo.address}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                style={{ 
+                  '--tw-ring-color': primaryColor,
+                } as React.CSSProperties}
               />
             </div>
             
@@ -435,8 +447,10 @@ export default function CheckoutPage() {
                 value={customerInfo.notes}
                 onChange={handleChange}
                 placeholder="هر نکته‌ای درباره سفارش خود دارید بنویسید..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                style={{ 
+                  '--tw-ring-color': primaryColor,
+                } as React.CSSProperties}
               />
             </div>
 
@@ -632,7 +646,7 @@ export default function CheckoutPage() {
             onClick={handleSubmit}
             disabled={loading}
             className="w-full text-white py-3 rounded-lg font-bold transition mt-4 disabled:opacity-50 hover:opacity-90"
-            style={{ backgroundColor: settings?.primaryColor || '#e53e3e' }}
+            style={{ backgroundColor: primaryColor }}
           >
             {loading ? '⏳ در حال ثبت سفارش...' : '✅ ثبت نهایی سفارش'}
           </button>

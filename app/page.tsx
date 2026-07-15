@@ -7,7 +7,7 @@ import { api } from '@/services/api';
 import { useSettings } from '@/context/SettingsContext';
 
 interface Product {
-  id: number;        // ✅ API عددی برمی‌گرداند
+  id: number;
   name: string;
   description: string;
   price: number;
@@ -48,7 +48,6 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // دریافت محصولات
         const productsRes = await api.products.getAll();
         const productsData = await productsRes.json();
         if (Array.isArray(productsData)) {
@@ -57,7 +56,6 @@ export default function Home() {
           setProducts([]);
         }
 
-        // دریافت بنرها
         const bannersRes = await api.banners.getAll();
         const bannersData = await bannersRes.json();
         if (bannersData && bannersData.length > 0) {
@@ -157,6 +155,9 @@ export default function Home() {
     );
   }
 
+  const primaryColor = settings?.primaryColor || '#e53e3e';
+  const secondaryColor = settings?.secondaryColor || '#3182ce';
+
   return (
     <div>
       <main className="container-custom py-8">
@@ -236,11 +237,11 @@ export default function Home() {
               placeholder="جستجوی محصولات..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-5 py-3 pr-12 border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:border-transparent"
-              style={{ 
-                borderColor: settings?.primaryColor || '#e53e3e',
-                focusRingColor: settings?.primaryColor || '#e53e3e'
-              }}
+              className="w-full px-5 py-3 pr-12 border-2 rounded-full focus:outline-none focus:ring-2 transition"
+              style={{
+                borderColor: primaryColor,
+                '--tw-ring-color': primaryColor,
+              } as React.CSSProperties}
             />
             <span className="absolute left-3 top-3 text-gray-400 text-xl">🔍</span>
             {searchTerm && (
@@ -264,7 +265,7 @@ export default function Home() {
                   ? 'text-white shadow-md' 
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
-              style={selectedCategory === 'همه' ? { backgroundColor: settings?.primaryColor || '#e53e3e' } : {}}
+              style={selectedCategory === 'همه' ? { backgroundColor: primaryColor } : {}}
             >
               همه محصولات
             </button>
@@ -277,7 +278,7 @@ export default function Home() {
                     ? 'text-white shadow-md' 
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
-                style={selectedCategory === cat.name ? { backgroundColor: settings?.primaryColor || '#e53e3e' } : {}}
+                style={selectedCategory === cat.name ? { backgroundColor: primaryColor } : {}}
               >
                 <span>{cat.icon}</span>
                 <span>{cat.name}</span>
@@ -294,7 +295,7 @@ export default function Home() {
             <button
               onClick={clearSearch}
               className="mt-4 px-6 py-2 rounded-lg text-white"
-              style={{ backgroundColor: settings?.primaryColor || '#e53e3e' }}
+              style={{ backgroundColor: primaryColor }}
             >
               حذف فیلترها
             </button>
@@ -308,7 +309,7 @@ export default function Home() {
               <Link 
                 href="/products" 
                 className="text-sm hover:underline"
-                style={{ color: settings?.primaryColor || '#e53e3e' }}
+                style={{ color: primaryColor }}
               >
                 مشاهده همه ←
               </Link>
@@ -349,16 +350,15 @@ export default function Home() {
                       <div className="inline-block bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600 mb-3 w-fit">
                         {product?.category || 'سایر'}
                       </div>
-                      {/* ✅ اصلاح لینک: استفاده از product.id به جای product._id */}
                       <Link 
                         href={`/products/${product?.id}`} 
                         className="block text-center text-white py-2 rounded-lg transition-all duration-300 mt-auto hover:shadow-md"
-                        style={{ backgroundColor: settings?.secondaryColor || '#3182ce' }}
+                        style={{ backgroundColor: secondaryColor }}
                         onMouseEnter={(e) => { 
-                          e.currentTarget.style.backgroundColor = settings?.primaryColor || '#e53e3e'; 
+                          e.currentTarget.style.backgroundColor = primaryColor; 
                         }}
                         onMouseLeave={(e) => { 
-                          e.currentTarget.style.backgroundColor = settings?.secondaryColor || '#3182ce'; 
+                          e.currentTarget.style.backgroundColor = secondaryColor; 
                         }}
                       >
                         مشاهده جزئیات
@@ -396,9 +396,7 @@ export default function Home() {
                           index === currentProductSlide ? 'w-6 h-2' : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'
                         }`}
                         style={{ 
-                          backgroundColor: index === currentProductSlide 
-                            ? settings?.primaryColor || '#e53e3e' 
-                            : '#cbd5e0' 
+                          backgroundColor: index === currentProductSlide ? primaryColor : '#cbd5e0' 
                         }}
                       />
                     ))}

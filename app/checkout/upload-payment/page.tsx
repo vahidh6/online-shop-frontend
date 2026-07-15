@@ -186,35 +186,10 @@ function UploadPaymentContent() {
     }
 
     try {
-      // ============ آماده سازی داده‌ها ============
-      const paymentData = {
-        paymentMethod: order?.paymentMethod,
-        bankInfo: order?.paymentMethod === 'card_to_card' ? {
-          bankName: formData.bankName,
-          referenceNumber: formData.referenceNumber,
-          senderName: formData.senderName,
-          receiptImage: formData.receiptImage || undefined
-        } : undefined,
-        exchangeInfo: order?.paymentMethod === 'exchange_hawala' ? {
-          exchangeName: formData.exchangeName,
-          hawaladariNumber: formData.referenceNumber,
-          senderName: formData.senderName,
-          receiptImage: formData.receiptImage || undefined
-        } : undefined,
-        notes: formData.notes || undefined
-      };
-
-      console.log('📤 Uploading payment data:', paymentData);
-
-      // ✅ ارسال به API (فرض می‌کنیم endpoint وجود دارد)
       const res = await api.orders.updateStatus(orderId, 'payment_uploaded', token);
-      
-      // همچنین اطلاعات پرداخت را آپدیت می‌کنیم (اگر endpoint جداگانه دارد)
-      // در غیر این صورت، می‌توانیم از یک endpoint مخصوص استفاده کنیم
       
       if (res.ok) {
         setSuccess(true);
-        // بعد از 2 ثانیه به صفحه موفقیت هدایت شود
         setTimeout(() => {
           router.push(`/checkout/success?orderId=${orderId}`);
         }, 2000);
@@ -265,7 +240,6 @@ function UploadPaymentContent() {
     );
   }
 
-  // اگر سفارش قبلاً تایید شده یا وضعیت مناسب ندارد
   if (order.status !== 'pending_payment' && order.status !== 'payment_uploaded') {
     return (
       <div className="container-custom py-8 text-center">
@@ -281,7 +255,6 @@ function UploadPaymentContent() {
     );
   }
 
-  // اگر پرداخت نقدی است، نیازی به آپلود نیست
   if (order.paymentMethod === 'cash_on_delivery') {
     return (
       <div className="container-custom py-8 text-center">
@@ -311,7 +284,7 @@ function UploadPaymentContent() {
     );
   }
 
-  // ============ فرم آپلود ============
+  const primaryColor = settings?.primaryColor || '#e53e3e';
   const isCardToCard = order.paymentMethod === 'card_to_card';
   const isExchange = order.paymentMethod === 'exchange_hawala';
   const paymentMethodName = isCardToCard ? 'حواله بانکی (کارت به کارت)' : 'حواله صرافی';
@@ -367,8 +340,10 @@ function UploadPaymentContent() {
                   value={formData.bankName}
                   onChange={handleChange}
                   placeholder="مثال: بانک ملی افغانستان"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                  style={{ 
+                    '--tw-ring-color': primaryColor,
+                  } as React.CSSProperties}
                 />
               </div>
 
@@ -383,8 +358,10 @@ function UploadPaymentContent() {
                   value={formData.referenceNumber}
                   onChange={handleChange}
                   placeholder="شماره پیگیری واریز"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                  style={{ 
+                    '--tw-ring-color': primaryColor,
+                  } as React.CSSProperties}
                 />
               </div>
 
@@ -399,8 +376,10 @@ function UploadPaymentContent() {
                   value={formData.senderName}
                   onChange={handleChange}
                   placeholder="نام کامل واریز کننده"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                  style={{ 
+                    '--tw-ring-color': primaryColor,
+                  } as React.CSSProperties}
                 />
               </div>
 
@@ -430,8 +409,10 @@ function UploadPaymentContent() {
                   value={formData.exchangeName}
                   onChange={handleChange}
                   placeholder="مثال: صرافی حبیب"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                  style={{ 
+                    '--tw-ring-color': primaryColor,
+                  } as React.CSSProperties}
                 />
               </div>
 
@@ -446,8 +427,10 @@ function UploadPaymentContent() {
                   value={formData.referenceNumber}
                   onChange={handleChange}
                   placeholder="شماره حواله صرافی"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                  style={{ 
+                    '--tw-ring-color': primaryColor,
+                  } as React.CSSProperties}
                 />
               </div>
 
@@ -462,8 +445,10 @@ function UploadPaymentContent() {
                   value={formData.senderName}
                   onChange={handleChange}
                   placeholder="نام کامل فرستنده"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-                  style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                  style={{ 
+                    '--tw-ring-color': primaryColor,
+                  } as React.CSSProperties}
                 />
               </div>
             </div>
@@ -480,8 +465,10 @@ function UploadPaymentContent() {
               value={formData.receiptImage}
               onChange={handleChange}
               placeholder="https://example.com/receipt.jpg"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-              style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+              style={{ 
+                '--tw-ring-color': primaryColor,
+              } as React.CSSProperties}
             />
             <p className="text-xs text-gray-500 mt-1">
               می‌توانید آدرس اینترنتی تصویر رسید را وارد کنید
@@ -499,8 +486,10 @@ function UploadPaymentContent() {
               value={formData.notes}
               onChange={handleChange}
               placeholder="هر نکته‌ای درباره پرداخت خود دارید بنویسید..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
-              style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+              style={{ 
+                '--tw-ring-color': primaryColor,
+              } as React.CSSProperties}
             />
           </div>
 
@@ -510,7 +499,7 @@ function UploadPaymentContent() {
               type="submit"
               disabled={submitting}
               className="flex-1 text-white py-2 rounded-lg transition disabled:opacity-50 hover:opacity-90"
-              style={{ backgroundColor: settings?.primaryColor || '#e53e3e' }}
+              style={{ backgroundColor: primaryColor }}
             >
               {submitting ? '⏳ در حال ارسال...' : '📤 ارسال اطلاعات پرداخت'}
             </button>

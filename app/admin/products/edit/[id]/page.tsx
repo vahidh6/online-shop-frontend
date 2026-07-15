@@ -2,14 +2,13 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';  // ✅ اصلاح شده
 import Link from 'next/link';
 import { api } from '@/services/api';
 import { useSettings } from '@/context/SettingsContext';
 import { CATEGORIES } from '@/services/constants';
 
 export default function EditProductPage() {
-  // ✅ استفاده از useParams به جای use
   const params = useParams();
   const router = useRouter();
   const settings = useSettings();
@@ -27,10 +26,8 @@ export default function EditProductPage() {
     isActive: true
   });
 
-  // ============ دریافت ID از params ============
   const productId = params?.id as string;
 
-  // ============ بررسی توکن و دریافت محصول ============
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -38,30 +35,21 @@ export default function EditProductPage() {
       return;
     }
 
-    console.log('🔍 Full params:', params);
-    console.log('🆔 Product ID:', productId);
-
-    if (!productId) {
-      console.error('❌ No product ID in params');
-      setError('شناسه محصول در آدرس یافت نشد');
+    if (!productId || productId === 'undefined' || productId === 'null') {
+      setError('شناسه محصول معتبر نیست');
       setLoading(false);
       return;
     }
 
     fetchProduct(productId);
-  }, [params?.id]); // ✅ وابستگی به params.id
+  }, [params?.id]);
 
-  // ============ دریافت محصول ============
   const fetchProduct = async (id: string) => {
     setLoading(true);
     setError(null);
     
     try {
-      console.log('🔄 Fetching product with ID:', id);
-      
       const res = await api.products.getOne(id);
-      
-      console.log('📡 Response status:', res.status);
       
       if (!res.ok) {
         if (res.status === 404) {
@@ -71,17 +59,14 @@ export default function EditProductPage() {
       }
       
       const data = await res.json();
-      console.log('✅ Product data:', data);
       
       if (!data || data.id === undefined) {
         throw new Error('داده‌های محصول نامعتبر است');
       }
       
-      // ✅ پشتیبانی از قیمت اعشاری
       const price = data.price || 0;
       const priceString = typeof price === 'string' ? price : price.toString();
       
-      // ✅ پشتیبانی از images به صورت string یا array
       let imageUrl = '';
       if (data.images) {
         if (typeof data.images === 'string') {
@@ -117,7 +102,6 @@ export default function EditProductPage() {
     }
   };
 
-  // ============ تغییر فیلدها ============
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const value = e.target.type === 'checkbox' 
       ? (e.target as HTMLInputElement).checked 
@@ -130,7 +114,6 @@ export default function EditProductPage() {
     if (error) setError(null);
   };
 
-  // ============ ثبت تغییرات ============
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -144,13 +127,12 @@ export default function EditProductPage() {
       return;
     }
 
-    if (!productId) {
+    if (!productId || productId === 'undefined') {
       setError('شناسه محصول معتبر نیست');
       setSaving(false);
       return;
     }
 
-    // ============ اعتبارسنجی ============
     if (!formData.name.trim()) {
       setError('نام محصول الزامی است');
       setSaving(false);
@@ -187,8 +169,6 @@ export default function EditProductPage() {
         is_active: formData.isActive
       };
 
-      console.log('📤 Updating product with data:', productData);
-
       const res = await api.products.update(productId, productData, token);
 
       if (res.ok) {
@@ -196,7 +176,6 @@ export default function EditProductPage() {
         router.push('/admin/products');
       } else {
         const errorData = await res.json();
-        console.error('❌ Update error:', errorData);
         setError(errorData.message || 'خطا در ویرایش محصول');
       }
     } catch (err) {
@@ -207,7 +186,6 @@ export default function EditProductPage() {
     }
   };
 
-  // ============ رندر ============
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -217,6 +195,8 @@ export default function EditProductPage() {
   }
 
   if (!settings) return null;
+
+  const primaryColor = settings?.primaryColor || '#e53e3e';
 
   return (
     <div className="container-custom py-8 max-w-2xl">
@@ -237,7 +217,13 @@ export default function EditProductPage() {
             </div>
             <div className="mt-3 flex gap-3">
               <button
-                onClick={() => productId && fetchProduct(productId)}
+                onClick={() => {
+                  if (productId && productId !== 'undefined') {
+                    fetchProduct(productId);
+                  } else {
+                    setError('شناسه محصول معتبر نیست');
+                  }
+                }}
                 className="px-4 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
               >
                 تلاش مجدد
@@ -264,11 +250,12 @@ export default function EditProductPage() {
                 value={formData.name}
                 onChange={handleChange}
                 placeholder="مثال: گوشی آیفون 13"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${
+                  error && !formData.name ? 'border-red-500' : 'border-gray-300'
+                }`}
                 style={{ 
-                  borderColor: error && !formData.name ? '#ef4444' : undefined,
-                  focusRingColor: settings?.primaryColor || '#e53e3e' 
-                }}
+                  '--tw-ring-color': primaryColor,
+                } as React.CSSProperties}
               />
             </div>
             
@@ -284,11 +271,12 @@ export default function EditProductPage() {
                 value={formData.description}
                 onChange={handleChange}
                 placeholder="توضیحات کامل محصول..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${
+                  error && !formData.description ? 'border-red-500' : 'border-gray-300'
+                }`}
                 style={{ 
-                  borderColor: error && !formData.description ? '#ef4444' : undefined,
-                  focusRingColor: settings?.primaryColor || '#e53e3e' 
-                }}
+                  '--tw-ring-color': primaryColor,
+                } as React.CSSProperties}
               />
             </div>
             
@@ -306,11 +294,12 @@ export default function EditProductPage() {
                 value={formData.price}
                 onChange={handleChange}
                 placeholder="مثال: 50000"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${
+                  error && !formData.price ? 'border-red-500' : 'border-gray-300'
+                }`}
                 style={{ 
-                  borderColor: error && !formData.price ? '#ef4444' : undefined,
-                  focusRingColor: settings?.primaryColor || '#e53e3e' 
-                }}
+                  '--tw-ring-color': primaryColor,
+                } as React.CSSProperties}
               />
               <p className="text-xs text-gray-500 mt-1">قیمت به افغانی وارد کنید</p>
             </div>
@@ -325,11 +314,12 @@ export default function EditProductPage() {
                 required
                 value={formData.category}
                 onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 transition ${
+                  error && !formData.category ? 'border-red-500' : 'border-gray-300'
+                }`}
                 style={{ 
-                  borderColor: error && !formData.category ? '#ef4444' : undefined,
-                  focusRingColor: settings?.primaryColor || '#e53e3e' 
-                }}
+                  '--tw-ring-color': primaryColor,
+                } as React.CSSProperties}
               >
                 <option value="">انتخاب دسته‌بندی</option>
                 {CATEGORIES.map(cat => (
@@ -348,7 +338,9 @@ export default function EditProductPage() {
                 onChange={handleChange}
                 placeholder="مثال: گوشی موبایل"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
-                style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                style={{ 
+                  '--tw-ring-color': primaryColor,
+                } as React.CSSProperties}
               />
             </div>
             
@@ -362,7 +354,9 @@ export default function EditProductPage() {
                 onChange={handleChange}
                 placeholder="https://example.com/image.jpg"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 transition"
-                style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                style={{ 
+                  '--tw-ring-color': primaryColor,
+                } as React.CSSProperties}
               />
               <p className="text-xs text-gray-500 mt-1">
                 اگر خالی بگذارید، آیکون پیش‌فرض نمایش داده می‌شود
@@ -390,8 +384,11 @@ export default function EditProductPage() {
                   name="isActive"
                   checked={formData.isActive}
                   onChange={handleChange}
-                  className="w-4 h-4 text-blue-600 rounded focus:ring-2"
-                  style={{ accentColor: settings?.primaryColor || '#e53e3e' }}
+                  className="w-4 h-4 rounded focus:ring-2"
+                  style={{ 
+                    accentColor: primaryColor,
+                    '--tw-ring-color': primaryColor,
+                  } as React.CSSProperties}
                 />
                 <span className="text-sm font-medium">فعال</span>
               </label>
@@ -406,7 +403,7 @@ export default function EditProductPage() {
                 type="submit"
                 disabled={saving}
                 className="flex-1 text-white py-2 rounded-lg transition disabled:opacity-50 hover:opacity-90"
-                style={{ backgroundColor: settings?.primaryColor || '#e53e3e' }}
+                style={{ backgroundColor: primaryColor }}
               >
                 {saving ? '⏳ در حال ذخیره...' : '💾 ذخیره تغییرات'}
               </button>
