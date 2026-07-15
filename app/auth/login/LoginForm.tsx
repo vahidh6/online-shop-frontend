@@ -1,8 +1,10 @@
+// app/auth/login/LoginForm.tsx
 'use client';
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { api } from '@/services/api';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -10,10 +12,7 @@ export default function LoginForm() {
   const redirect = searchParams.get('redirect') || '/';
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -26,14 +25,7 @@ export default function LoginForm() {
     setError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
-      
-      const res = await fetch(`${apiUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-
+      const res = await api.auth.login(formData);
       const data = await res.json();
 
       if (res.ok && data.token) {
@@ -56,9 +48,7 @@ export default function LoginForm() {
         <h1 className="text-2xl font-bold text-center mb-6">🔐 ورود به حساب کاربری</h1>
         
         {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-center">
-            {error}
-          </div>
+          <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-center">{error}</div>
         )}
         
         <form onSubmit={handleSubmit}>

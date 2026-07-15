@@ -1,15 +1,17 @@
+// app/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { api } from '@/services/api';
+import { useSettings } from '@/context/SettingsContext';
 
 interface Product {
-  _id: string;
+  id: number;        // ✅ API عددی برمی‌گرداند
   name: string;
   description: string;
   price: number;
   category: string;
-  createdAt: string;
   images?: string[];
 }
 
@@ -24,27 +26,6 @@ interface Banner {
   buttonLink?: string;
 }
 
-interface Settings {
-  siteName: string;
-  siteDescription: string;
-  phone: string;
-  email: string;
-  address: string;
-  workingHours: string;
-  facebook: string;
-  instagram: string;
-  telegram: string;
-  whatsapp: string;
-  deliveryFeeKabul: number;
-  deliveryFeeOther: number;
-  freeDeliveryThreshold: number;
-  primaryColor: string;
-  secondaryColor: string;
-  footerText: string;
-  isMaintenance: boolean;
-  maintenanceMessage: string;
-}
-
 const categoriesList = [
   { id: 1, name: 'قطعات و تعمیرات موبایل', icon: '🔧' },
   { id: 2, name: 'باتری و شارژ', icon: '🔋' },
@@ -54,59 +35,34 @@ const categoriesList = [
 ];
 
 export default function Home() {
+  const settings = useSettings();
   const [products, setProducts] = useState<Product[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userName, setUserName] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('همه');
   const [currentBannerSlide, setCurrentBannerSlide] = useState(0);
   const [currentProductSlide, setCurrentProductSlide] = useState(0);
-  const [settings, setSettings] = useState<Settings>({
-    siteName: 'شرکت همراه افغان',
-    siteDescription: 'بزرگترین فروشگاه تخصصی در افغانستان',
-    phone: '0799364841',
-    email: 'info@advance.af',
-    address: 'کابل، افغانستان',
-    workingHours: 'شنبه تا پنجشنبه ۹:۰۰ - ۱۷:۰۰',
-    facebook: '',
-    instagram: '',
-    telegram: '',
-    whatsapp: '',
-    deliveryFeeKabul: 50000,
-    deliveryFeeOther: 100000,
-    freeDeliveryThreshold: 0,
-    primaryColor: '#e53e3e',
-    secondaryColor: '#3182ce',
-    footerText: '© 2026 شرکت همراه افغان - تمامی حقوق محفوظ است',
-    isMaintenance: false,
-    maintenanceMessage: 'در حال بروزرسانی، به زودی بازمی‌گردیم'
-  });
 
-  // جستجو و فیلتر - تعریف قبل از استفاده در useEffect
-  const filteredProducts = products.filter(product => {
-    const matchesCategory = selectedCategory === 'همه' || product.category === selectedCategory;
-    const matchesSearch = searchTerm === '' || 
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesCategory && matchesSearch;
-  });
-
-  const totalProductSlides = Math.ceil(filteredProducts.length / 4);
-  const currentProducts = filteredProducts.slice(currentProductSlide * 4, (currentProductSlide * 4) + 4);
-
-  // دریافت بنرها از API
+  // ============ دریافت محصولات و بنرها ============
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
-    
-    fetch(`${apiUrl}/api/banners`)
-      .then(res => res.json())
-      .then(data => {
-        if (data && data.length > 0) {
-          setBanners(data);
+    const fetchData = async () => {
+      try {
+        // دریافت محصولات
+        const productsRes = await api.products.getAll();
+        const productsData = await productsRes.json();
+        if (Array.isArray(productsData)) {
+          setProducts(productsData);
         } else {
-          // بنرهای پیش‌فرض اگر هیچ بنری در دیتابیس نبود
+          setProducts([]);
+        }
+
+        // دریافت بنرها
+        const bannersRes = await api.banners.getAll();
+        const bannersData = await bannersRes.json();
+        if (bannersData && bannersData.length > 0) {
+          setBanners(bannersData);
+        } else {
           setBanners([
             { _id: '1', title: 'تخفیف ویژه تا ۵۰٪', description: 'بهترین محصولات با بهترین قیمت', image: '🎁', bgColor: '#3b82f6' },
             { _id: '2', title: 'ارسال رایگان', description: 'برای خرید بالای ۱۰۰۰۰ افغانی', image: '🚚', bgColor: '#10b981' },
@@ -114,20 +70,24 @@ export default function Home() {
             { _id: '4', title: 'پرداخت در محل', description: 'امکان پرداخت هنگام تحویل', image: '💰', bgColor: '#8b5cf6' },
           ]);
         }
-      })
-      .catch(err => {
-        console.error('Error fetching banners:', err);
-        // در صورت خطا، بنرهای پیش‌فرض را نشان بده
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        setProducts([]);
         setBanners([
           { _id: '1', title: 'تخفیف ویژه تا ۵۰٪', description: 'بهترین محصولات با بهترین قیمت', image: '🎁', bgColor: '#3b82f6' },
           { _id: '2', title: 'ارسال رایگان', description: 'برای خرید بالای ۱۰۰۰۰ افغانی', image: '🚚', bgColor: '#10b981' },
           { _id: '3', title: 'محصولات اصل', description: 'ضمانت اصالت کالا', image: '✅', bgColor: '#f59e0b' },
           { _id: '4', title: 'پرداخت در محل', description: 'امکان پرداخت هنگام تحویل', image: '💰', bgColor: '#8b5cf6' },
         ]);
-      });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  // اسکرول خودکار بنر تبلیغاتی
+  // ============ اسکرول خودکار بنرها ============
   useEffect(() => {
     if (banners.length === 0) return;
     const bannerInterval = setInterval(() => {
@@ -136,84 +96,54 @@ export default function Home() {
     return () => clearInterval(bannerInterval);
   }, [banners.length]);
 
-  // اسکرول خودکار محصولات
+  // ============ فیلتر محصولات ============
+  const filteredProducts = products.filter(product => {
+    const matchesCategory = selectedCategory === 'همه' || product?.category === selectedCategory;
+    const matchesSearch = searchTerm === '' || 
+      (product?.name && product.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (product?.description && product.description.toLowerCase().includes(searchTerm.toLowerCase()));
+    return matchesCategory && matchesSearch;
+  });
+
+  const totalProductSlides = Math.ceil((filteredProducts?.length || 0) / 4);
+  const currentProducts = filteredProducts?.slice(
+    currentProductSlide * 4, 
+    (currentProductSlide * 4) + 4
+  ) || [];
+
   useEffect(() => {
-    if (filteredProducts.length === 0) return;
-    
+    if (filteredProducts.length === 0 || totalProductSlides === 0) return;
     const productInterval = setInterval(() => {
       setCurrentProductSlide((prev) => (prev + 1) % totalProductSlides);
     }, 6000);
     return () => clearInterval(productInterval);
   }, [filteredProducts.length, totalProductSlides]);
 
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-    if (token && user) {
-      setIsLoggedIn(true);
-      try {
-        const userData = JSON.parse(user);
-        setUserName(userData.name || 'کاربر');
-      } catch (e) {
-        console.error('Error parsing user:', e);
-      }
-    }
-  }, []);
-
-  useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
-    
-    fetch(`${apiUrl}/api/settings`)
-      .then(res => res.json())
-      .then(data => {
-        if (data) setSettings(data);
-      })
-      .catch(err => console.error('Error fetching settings:', err));
-  }, []);
-
-  useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
-    
-    fetch(`${apiUrl}/api/products`)
-      .then(res => res.json())
-      .then(data => {
-        setProducts(data);
-        setLoading(false);
-      })
-      .catch(err => {
-        console.error('Error:', err);
-        setLoading(false);
-      });
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    setIsLoggedIn(false);
-    window.location.href = '/';
-  };
-
-  const goToBannerSlide = (index: number) => {
-    setCurrentBannerSlide(index);
-  };
-
-  const goToProductSlide = (index: number) => {
-    setCurrentProductSlide(index);
-  };
-
+  // ============ توابع کمکی ============
+  const goToBannerSlide = (index: number) => setCurrentBannerSlide(index);
+  const goToProductSlide = (index: number) => setCurrentProductSlide(index);
   const clearSearch = () => {
     setSearchTerm('');
     setSelectedCategory('همه');
     setCurrentProductSlide(0);
   };
 
+  // ============ رندر ============
+  if (!settings) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
   if (settings.isMaintenance) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="text-center p-8 bg-white rounded-lg shadow">
           <div className="text-6xl mb-4">🔧</div>
-          <h1 className="text-2xl font-bold mb-2">{settings.siteName}</h1>
-          <p className="text-gray-600">{settings.maintenanceMessage}</p>
+          <h1 className="text-2xl font-bold mb-2">{settings.siteName || 'فروشگاه'}</h1>
+          <p className="text-gray-600">{settings.maintenanceMessage || 'در حال بروزرسانی، به زودی بازمی‌گردیم'}</p>
         </div>
       </div>
     );
@@ -229,46 +159,10 @@ export default function Home() {
 
   return (
     <div>
-      <header className="bg-white shadow-md sticky top-0 z-50">
-        <div className="container-custom py-4 flex justify-between items-center flex-wrap gap-4">
-          <Link href="/" className="text-2xl font-bold" style={{ color: settings.primaryColor }}>
-            🏢 {settings.siteName}
-          </Link>
-          
-          <nav className="flex gap-6">
-            <Link href="/" className="hover:text-blue-600">خانه</Link>
-            <Link href="/products" className="hover:text-blue-600">محصولات</Link>
-            <Link href="/orders" className="hover:text-blue-600">سفارشات من</Link>
-            <Link href="/cart" className="hover:text-blue-600">🛒 سبد خرید</Link>
-          </nav>
-          
-          <div className="flex gap-4 items-center">
-            {isLoggedIn ? (
-              <>
-                <span className="text-gray-600">خوش آمدی {userName}!</span>
-                <button 
-                  onClick={handleLogout}
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition"
-                >
-                  خروج
-                </button>
-              </>
-            ) : (
-              <>
-                <Link href="/auth/login" className="text-blue-600 hover:underline">ورود</Link>
-                <Link href="/auth/register" className="bg-green-500 text-white px-4 py-2 rounded-lg hover:bg-green-600 transition">
-                  ثبت نام
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
       <main className="container-custom py-8">
-        {/* اسلایدر تبلیغاتی - داینامیک از دیتابیس */}
+        {/* ============ اسلایدر تبلیغاتی ============ */}
         {banners.length > 0 && (
-          <div className="relative mb-12 rounded-2xl overflow-hidden shadow-lg h-80">
+          <div className="relative mb-12 rounded-2xl overflow-hidden shadow-lg h-64 md:h-80">
             {banners.map((slide, index) => (
               <div
                 key={slide._id}
@@ -282,9 +176,9 @@ export default function Home() {
                 style={{ backgroundColor: slide.bgColor || '#3b82f6' }}
               >
                 <div className="text-center">
-                  <div className="text-7xl mb-4">{slide.image || '🎯'}</div>
-                  <h2 className="text-3xl md:text-4xl font-bold mb-2">{slide.title}</h2>
-                  <p className="text-lg md:text-xl">{slide.description}</p>
+                  <div className="text-6xl md:text-7xl mb-4">{slide.image || '🎯'}</div>
+                  <h2 className="text-2xl md:text-4xl font-bold mb-2">{slide.title || 'بنر'}</h2>
+                  <p className="text-base md:text-xl">{slide.description || ''}</p>
                   {slide.buttonLink && (
                     <Link
                       href={slide.buttonLink}
@@ -301,29 +195,29 @@ export default function Home() {
               <>
                 <button
                   onClick={() => goToBannerSlide((currentBannerSlide - 1 + banners.length) % banners.length)}
-                  className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 backdrop-blur-sm rounded-full p-2 transition-all duration-300 hover:scale-110"
+                  className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 backdrop-blur-sm rounded-full p-2 transition-all duration-300 hover:scale-110"
                 >
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
                 <button
                   onClick={() => goToBannerSlide((currentBannerSlide + 1) % banners.length)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 backdrop-blur-sm rounded-full p-2 transition-all duration-300 hover:scale-110"
+                  className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 z-20 bg-white/30 hover:bg-white/50 backdrop-blur-sm rounded-full p-2 transition-all duration-300 hover:scale-110"
                 >
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
                 
-                <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-20">
+                <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-20">
                   {banners.map((_, index) => (
                     <button
                       key={index}
                       onClick={() => goToBannerSlide(index)}
                       className={`transition-all duration-300 rounded-full ${
                         index === currentBannerSlide 
-                          ? 'bg-white w-8 h-2' 
+                          ? 'bg-white w-6 md:w-8 h-2' 
                           : 'bg-white/50 w-2 h-2 hover:bg-white/80 hover:w-4'
                       }`}
                     />
@@ -334,7 +228,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* جستجو */}
+        {/* ============ جستجو ============ */}
         <div className="mb-6">
           <div className="relative max-w-2xl mx-auto">
             <input
@@ -343,6 +237,10 @@ export default function Home() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full px-5 py-3 pr-12 border-2 border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:border-transparent"
+              style={{ 
+                borderColor: settings?.primaryColor || '#e53e3e',
+                focusRingColor: settings?.primaryColor || '#e53e3e'
+              }}
             />
             <span className="absolute left-3 top-3 text-gray-400 text-xl">🔍</span>
             {searchTerm && (
@@ -356,7 +254,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* دسته‌بندی */}
+        {/* ============ دسته‌بندی ============ */}
         <div className="mb-8">
           <div className="flex flex-wrap gap-3 justify-center">
             <button
@@ -366,7 +264,7 @@ export default function Home() {
                   ? 'text-white shadow-md' 
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
-              style={selectedCategory === 'همه' ? { backgroundColor: settings.primaryColor } : {}}
+              style={selectedCategory === 'همه' ? { backgroundColor: settings?.primaryColor || '#e53e3e' } : {}}
             >
               همه محصولات
             </button>
@@ -379,7 +277,7 @@ export default function Home() {
                     ? 'text-white shadow-md' 
                     : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                 }`}
-                style={selectedCategory === cat.name ? { backgroundColor: settings.primaryColor } : {}}
+                style={selectedCategory === cat.name ? { backgroundColor: settings?.primaryColor || '#e53e3e' } : {}}
               >
                 <span>{cat.icon}</span>
                 <span>{cat.name}</span>
@@ -388,7 +286,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* اسلایدر محصولات */}
+        {/* ============ اسلایدر محصولات ============ */}
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <div className="text-6xl mb-4">🔍</div>
@@ -396,7 +294,7 @@ export default function Home() {
             <button
               onClick={clearSearch}
               className="mt-4 px-6 py-2 rounded-lg text-white"
-              style={{ backgroundColor: settings.primaryColor }}
+              style={{ backgroundColor: settings?.primaryColor || '#e53e3e' }}
             >
               حذف فیلترها
             </button>
@@ -407,7 +305,11 @@ export default function Home() {
               <h2 className="text-2xl font-bold text-gray-800">
                 {selectedCategory === 'همه' ? 'محصولات ویژه' : `محصولات ${selectedCategory}`}
               </h2>
-              <Link href="/products" className="text-sm hover:underline" style={{ color: settings.primaryColor }}>
+              <Link 
+                href="/products" 
+                className="text-sm hover:underline"
+                style={{ color: settings?.primaryColor || '#e53e3e' }}
+              >
                 مشاهده همه ←
               </Link>
             </div>
@@ -415,12 +317,15 @@ export default function Home() {
             <div className="relative">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {currentProducts.map((product) => (
-                  <div key={product._id} className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col h-full group">
+                  <div 
+                    key={product?.id || Math.random()} 
+                    className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 flex flex-col h-full group"
+                  >
                     <div className="bg-gray-100 h-48 flex items-center justify-center overflow-hidden">
-                      {product.images && product.images[0] ? (
+                      {product?.images && product.images.length > 0 && product.images[0] ? (
                         <img 
                           src={product.images[0]} 
-                          alt={product.name}
+                          alt={product?.name || 'محصول'}
                           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                           onError={(e) => {
                             e.currentTarget.style.display = 'none';
@@ -435,17 +340,26 @@ export default function Home() {
                       )}
                     </div>
                     <div className="p-4 flex flex-col flex-grow">
-                      <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 min-h-[48px] group-hover:text-blue-600 transition-colors">{product.name}</h3>
-                      <div className="text-xl font-bold text-green-600 mb-2">{product.price.toLocaleString()} افغانی</div>
-                      <div className="inline-block bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600 mb-3 w-fit">
-                        {product.category}
+                      <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 min-h-[48px] group-hover:text-blue-600 transition-colors">
+                        {product?.name || 'بدون نام'}
+                      </h3>
+                      <div className="text-xl font-bold text-green-600 mb-2">
+                        {(product?.price || 0).toLocaleString()} افغانی
                       </div>
+                      <div className="inline-block bg-gray-100 px-2 py-1 rounded-full text-xs text-gray-600 mb-3 w-fit">
+                        {product?.category || 'سایر'}
+                      </div>
+                      {/* ✅ اصلاح لینک: استفاده از product.id به جای product._id */}
                       <Link 
-                        href={`/products/${product._id}`} 
-                        className="block text-center text-white py-2 rounded-lg transition-all duration-300 mt-auto hover:shadow-md" 
-                        style={{ backgroundColor: settings.secondaryColor }}
-                        onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = settings.primaryColor; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = settings.secondaryColor; }}
+                        href={`/products/${product?.id}`} 
+                        className="block text-center text-white py-2 rounded-lg transition-all duration-300 mt-auto hover:shadow-md"
+                        style={{ backgroundColor: settings?.secondaryColor || '#3182ce' }}
+                        onMouseEnter={(e) => { 
+                          e.currentTarget.style.backgroundColor = settings?.primaryColor || '#e53e3e'; 
+                        }}
+                        onMouseLeave={(e) => { 
+                          e.currentTarget.style.backgroundColor = settings?.secondaryColor || '#3182ce'; 
+                        }}
                       >
                         مشاهده جزئیات
                       </Link>
@@ -481,7 +395,11 @@ export default function Home() {
                         className={`transition-all duration-300 rounded-full ${
                           index === currentProductSlide ? 'w-6 h-2' : 'w-2 h-2 bg-gray-300 hover:bg-gray-400'
                         }`}
-                        style={{ backgroundColor: index === currentProductSlide ? settings.primaryColor : '#cbd5e0' }}
+                        style={{ 
+                          backgroundColor: index === currentProductSlide 
+                            ? settings?.primaryColor || '#e53e3e' 
+                            : '#cbd5e0' 
+                        }}
                       />
                     ))}
                   </div>
@@ -491,45 +409,6 @@ export default function Home() {
           </div>
         )}
       </main>
-
-      <footer className="text-white mt-16" style={{ backgroundColor: '#2d3748' }}>
-        <div className="container-custom py-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h3 className="text-xl font-bold mb-4" style={{ color: settings.primaryColor }}>{settings.siteName}</h3>
-              <p className="text-gray-300">{settings.siteDescription}</p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">لینک‌های سریع</h4>
-              <ul className="space-y-2">
-                <li><Link href="/" className="text-gray-300 hover:text-white transition-colors">خانه</Link></li>
-                <li><Link href="/products" className="text-gray-300 hover:text-white transition-colors">محصولات</Link></li>
-                <li><Link href="/contact" className="text-gray-300 hover:text-white transition-colors">تماس با ما</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">خدمات مشتریان</h4>
-              <ul className="space-y-2">
-                <li><Link href="/faq" className="text-gray-300 hover:text-white transition-colors">سوالات متداول</Link></li>
-                <li><Link href="/returns" className="text-gray-300 hover:text-white transition-colors">بازگرداندن کالا</Link></li>
-                <li><Link href="/shipping" className="text-gray-300 hover:text-white transition-colors">روش‌های ارسال</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">تماس با ما</h4>
-              <ul className="space-y-2 text-gray-300">
-                <li>📞 {settings.phone}</li>
-                <li>✉️ {settings.email}</li>
-                <li>📍 {settings.address}</li>
-                <li>🕐 {settings.workingHours}</li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-700 mt-8 pt-8 text-center text-gray-400">
-            <p>{settings.footerText}</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

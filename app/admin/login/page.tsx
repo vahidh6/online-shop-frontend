@@ -1,32 +1,26 @@
+// app/admin/login/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { api } from '@/services/api';
 
 export default function AdminLogin() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
 
-  // اگر قبلاً لاگین کرده، به پنل ادمین هدایت شو
   useEffect(() => {
-    // با setTimeout مطمئن می‌شویم که در سمت کلاینت اجرا شود
     setTimeout(() => {
       const token = localStorage.getItem('token');
       const userStr = localStorage.getItem('user');
-      
-      console.log('Checking existing login...', { token: !!token, userStr: !!userStr });
       
       if (token && userStr) {
         try {
           const user = JSON.parse(userStr);
           if (user.role === 'admin') {
-            console.log('User is admin, redirecting to /admin');
             router.replace('/admin');
             return;
           }
@@ -48,14 +42,7 @@ export default function AdminLogin() {
     setError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
-      
-      const res = await fetch(`${apiUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-
+      const res = await api.auth.login(formData);
       const data = await res.json();
 
       if (res.ok && data.token) {
@@ -85,9 +72,7 @@ export default function AdminLogin() {
         <h1 className="text-2xl font-bold text-center mb-6">🎛️ پنل مدیریت</h1>
         
         {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-center">
-            {error}
-          </div>
+          <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-center">{error}</div>
         )}
         
         <form onSubmit={handleSubmit}>

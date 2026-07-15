@@ -34,7 +34,7 @@ export default function AdminBanners() {
   }, [router]);
 
   const fetchBanners = async () => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://lightcyan-wolf-542317.hostingersite.com';
     const token = localStorage.getItem('token');
     
     try {
@@ -52,7 +52,7 @@ export default function AdminBanners() {
 
   const toggleStatus = async (id: string, currentStatus: boolean) => {
     const token = localStorage.getItem('token');
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://lightcyan-wolf-542317.hostingersite.com';
     
     try {
       const res = await fetch(`${apiUrl}/api/banners/${id}`, {
@@ -76,7 +76,7 @@ export default function AdminBanners() {
     if (!confirm('آیا از حذف این بنر مطمئن هستید؟')) return;
     
     const token = localStorage.getItem('token');
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://lightcyan-wolf-542317.hostingersite.com';
     
     try {
       const res = await fetch(`${apiUrl}/api/banners/${id}`, {

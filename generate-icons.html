@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>ساخت آیکون‌های فروشگاه</title>
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            padding: 50px;
+            direction: rtl;
+        }
+        button {
+            padding: 15px 30px;
+            font-size: 18px;
+            background: #e53e3e;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🛍️ ساخت آیکون‌های فروشگاه افغانستان</h1>
+    <p>روی دکمه زیر کلیک کنید تا همه آیکون‌ها ساخته و دانلود شوند</p>
+    <button onclick="generateAllIcons()">ساخت همه آیکون‌ها (8 عدد)</button>
+    <div class="status" id="status"></div>
+    <canvas id="canvas" style="display: none;"></canvas>
+
+    <script>
+        const sizes = [72, 96, 128, 144, 152, 192, 384, 512];
+        let currentIndex = 0;
+        
+        function generateAllIcons() {
+            currentIndex = 0;
+            generateNextIcon();
+        }
+        
+        function generateNextIcon() {
+            if (currentIndex >= sizes.length) {
+                document.getElementById('status').innerHTML = '✅ همه آیکون‌ها ساخته شدند!<br>فایل‌ها در پوشه Downloads شما ذخیره شدند.<br>حالا آنها را به پوشه public/icons منتقل کنید.';
+                return;
+            }
+            
+            const size = sizes[currentIndex];
+            document.getElementById('status').innerHTML = `در حال ساخت آیکون ${size}x${size}... (${currentIndex + 1} از ${sizes.length})`;
+            
+            const canvas = document.getElementById('canvas');
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d');
+            
+            // پس‌زمینه قرمز
+            ctx.fillStyle = '#e53e3e';
+            ctx.fillRect(0, 0, size, size);
+            
+            // خطوط سفید تزئینی
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = size * 0.02;
+            ctx.strokeRect(size * 0.1, size * 0.1, size * 0.8, size * 0.8);
+            
+            // ایموجی یا متن
+            ctx.fillStyle = 'white';
+            ctx.font = `${size * 0.45}px "Segoe UI Emoji", "Apple Color Emoji", sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🛍️', size/2, size/2);
+            
+            // دانلود
+            const link = document.createElement('a');
+            link.download = `icon-${size}x${size}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+            
+            currentIndex++;
+            setTimeout(generateNextIcon, 500);
+        }
+    </script>
+</body>
+</html>

@@ -1,383 +1,542 @@
+// app/checkout/upload-payment/page.tsx
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { api } from '@/services/api';
+import { useSettings } from '@/context/SettingsContext';
 
-interface CartItem {
+interface Order {
   _id: string;
-  name: string;
-  price: number;
-  quantity: number;
+  orderNumber: string;
+  totalAmount: number;
+  status: string;
+  paymentMethod: string;
+  createdAt: string;
+  items: Array<{
+    productName: string;
+    quantity: number;
+    price: number;
+  }>;
+  customerInfo: {
+    name: string;
+    phone: string;
+    province: string;
+    address: string;
+  };
 }
 
-interface Province {
-  _id: string;
-  name: string;
-  code: string;
+// ============ کامپوننت اصلی با Suspense ============
+export default function UploadPaymentPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    }>
+      <UploadPaymentContent />
+    </Suspense>
+  );
 }
 
-interface District {
-  _id: string;
-  name: string;
-  provinceId: string;
-}
-
-export default function CheckoutPage() {
+// ============ محتوای اصلی ============
+function UploadPaymentContent() {
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [provinces, setProvinces] = useState<Province[]>([]);
-  const [districts, setDistricts] = useState<District[]>([]);
-  const [selectedProvince, setSelectedProvince] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('cash_on_delivery');
+  const settings = useSettings();
   
-  const [customerInfo, setCustomerInfo] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    province: '',
-    provinceId: '',
-    district: '',
-    address: '',
+  const orderId = searchParams.get('orderId');
+  
+  const [order, setOrder] = useState<Order | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  
+  // ============ فرم آپلود ============
+  const [formData, setFormData] = useState({
+    bankName: '',
+    referenceNumber: '',
+    senderName: '',
+    receiptImage: '',
+    exchangeName: '',
     notes: ''
   });
 
-  // دریافت ولایت‌ها
+  // ============ دریافت سفارش ============
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
-    
-    fetch(`${apiUrl}/api/locations/provinces`)
-      .then(res => res.json())
-      .then(data => setProvinces(data))
-      .catch(err => console.error('Error fetching provinces:', err));
-  }, []);
-
-  // دریافت ولسوالی‌ها
-  useEffect(() => {
-    if (selectedProvince) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
-      
-      fetch(`${apiUrl}/api/locations/districts/${selectedProvince}`)
-        .then(res => res.json())
-        .then(data => setDistricts(data))
-        .catch(err => console.error('Error fetching districts:', err));
-    } else {
-      setDistricts([]);
+    if (!orderId) {
+      setError('شناسه سفارش یافت نشد');
+      setLoading(false);
+      return;
     }
-  }, [selectedProvince]);
-
-  useEffect(() => {
-    const savedCart = localStorage.getItem('cart');
-    if (savedCart) {
-      setCart(JSON.parse(savedCart));
-    }
-  }, []);
-
-  const totalPrice = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const deliveryFee = customerInfo.province === 'کابل' ? 50000 : 100000;
-  const total = totalPrice + deliveryFee;
-
-  const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const provinceId = e.target.value;
-    const province = provinces.find(p => p._id === provinceId);
-    setSelectedProvince(provinceId);
-    setCustomerInfo({
-      ...customerInfo,
-      province: province?.name || '',
-      provinceId: provinceId,
-      district: ''
-    });
-  };
-
-  const handleDistrictChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const districtId = e.target.value;
-    const district = districts.find(d => d._id === districtId);
-    setCustomerInfo({
-      ...customerInfo,
-      district: district?.name || ''
-    });
-  };
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setCustomerInfo({
-      ...customerInfo,
-      [e.target.name]: e.target.value
-    });
-    setError('');
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
 
     const token = localStorage.getItem('token');
-    
     if (!token) {
-      setError('لطفاً ابتدا وارد شوید');
-      router.push('/auth/login?redirect=/checkout');
+      router.push('/auth/login?redirect=/checkout/upload-payment');
       return;
     }
 
-    if (cart.length === 0) {
-      setError('سبد خرید خالی است');
-      setLoading(false);
-      return;
-    }
-
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
-
-    const orderData = {
-      items: cart.map(item => ({
-        productId: item._id,
-        productName: item.name,
-        quantity: item.quantity,
-        price: item.price
-      })),
-      subtotal: totalPrice,
-      deliveryFee: deliveryFee,
-      totalAmount: total,
-      paymentMethod: paymentMethod,
-      customerInfo: customerInfo
+    const fetchOrder = async () => {
+      try {
+        const res = await api.orders.getOne(orderId, token);
+        
+        if (!res.ok) {
+          if (res.status === 404) {
+            throw new Error('سفارش یافت نشد');
+          }
+          throw new Error('خطا در دریافت اطلاعات سفارش');
+        }
+        
+        const data = await res.json();
+        setOrder(data);
+        
+        // پر کردن خودکار اطلاعات بانکی/صرافی بر اساس روش پرداخت
+        if (data.paymentMethod === 'card_to_card') {
+          setFormData(prev => ({
+            ...prev,
+            bankName: data.bankInfo?.bankName || '',
+            referenceNumber: data.bankInfo?.referenceNumber || '',
+            senderName: data.bankInfo?.senderName || ''
+          }));
+        } else if (data.paymentMethod === 'exchange_hawala') {
+          setFormData(prev => ({
+            ...prev,
+            exchangeName: data.exchangeInfo?.exchangeName || '',
+            referenceNumber: data.exchangeInfo?.hawaladariNumber || '',
+            senderName: data.exchangeInfo?.senderName || ''
+          }));
+        }
+      } catch (err: any) {
+        console.error('Error fetching order:', err);
+        setError(err.message || 'خطا در دریافت اطلاعات سفارش');
+      } finally {
+        setLoading(false);
+      }
     };
 
+    fetchOrder();
+  }, [orderId, router]);
+
+  // ============ تغییر فیلدها ============
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value
+    });
+    if (error) setError(null);
+  };
+
+  // ============ ارسال فرم ============
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setError('لطفاً وارد شوید');
+      router.push('/auth/login');
+      setSubmitting(false);
+      return;
+    }
+
+    if (!orderId) {
+      setError('شناسه سفارش معتبر نیست');
+      setSubmitting(false);
+      return;
+    }
+
+    // ============ اعتبارسنجی ============
+    if (order?.paymentMethod === 'card_to_card') {
+      if (!formData.bankName.trim()) {
+        setError('نام بانک الزامی است');
+        setSubmitting(false);
+        return;
+      }
+      if (!formData.referenceNumber.trim()) {
+        setError('شماره پیگیری الزامی است');
+        setSubmitting(false);
+        return;
+      }
+      if (!formData.senderName.trim()) {
+        setError('نام واریز کننده الزامی است');
+        setSubmitting(false);
+        return;
+      }
+    }
+
+    if (order?.paymentMethod === 'exchange_hawala') {
+      if (!formData.exchangeName.trim()) {
+        setError('نام صرافی الزامی است');
+        setSubmitting(false);
+        return;
+      }
+      if (!formData.referenceNumber.trim()) {
+        setError('شماره حواله الزامی است');
+        setSubmitting(false);
+        return;
+      }
+      if (!formData.senderName.trim()) {
+        setError('نام فرستنده الزامی است');
+        setSubmitting(false);
+        return;
+      }
+    }
+
     try {
-      const response = await fetch(`${apiUrl}/api/orders`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(orderData)
-      });
+      // ============ آماده سازی داده‌ها ============
+      const paymentData = {
+        paymentMethod: order?.paymentMethod,
+        bankInfo: order?.paymentMethod === 'card_to_card' ? {
+          bankName: formData.bankName,
+          referenceNumber: formData.referenceNumber,
+          senderName: formData.senderName,
+          receiptImage: formData.receiptImage || undefined
+        } : undefined,
+        exchangeInfo: order?.paymentMethod === 'exchange_hawala' ? {
+          exchangeName: formData.exchangeName,
+          hawaladariNumber: formData.referenceNumber,
+          senderName: formData.senderName,
+          receiptImage: formData.receiptImage || undefined
+        } : undefined,
+        notes: formData.notes || undefined
+      };
 
-      const data = await response.json();
+      console.log('📤 Uploading payment data:', paymentData);
 
-      if (response.ok) {
-        localStorage.removeItem('cart');
-        
-        if (paymentMethod === 'cash_on_delivery') {
-          router.push(`/checkout/success?orderId=${data._id}`);
-        } else {
-          router.push(`/checkout/upload-payment?orderId=${data._id}`);
-        }
+      // ✅ ارسال به API (فرض می‌کنیم endpoint وجود دارد)
+      const res = await api.orders.updateStatus(orderId, 'payment_uploaded', token);
+      
+      // همچنین اطلاعات پرداخت را آپدیت می‌کنیم (اگر endpoint جداگانه دارد)
+      // در غیر این صورت، می‌توانیم از یک endpoint مخصوص استفاده کنیم
+      
+      if (res.ok) {
+        setSuccess(true);
+        // بعد از 2 ثانیه به صفحه موفقیت هدایت شود
+        setTimeout(() => {
+          router.push(`/checkout/success?orderId=${orderId}`);
+        }, 2000);
       } else {
-        setError(data.message || 'خطا در ثبت سفارش');
+        const errorData = await res.json();
+        setError(errorData.message || 'خطا در ارسال اطلاعات پرداخت');
       }
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Error uploading payment:', err);
       setError('خطا در ارتباط با سرور');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  if (cart.length === 0) {
+  // ============ رندر ============
+  if (loading) {
     return (
-      <div className="container-custom py-8 text-center">
-        <h1 className="text-2xl font-bold mb-4">سبد خرید خالی است</h1>
-        <Link href="/products" className="bg-blue-600 text-white px-6 py-2 rounded-lg">بازگشت به فروشگاه</Link>
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
+  if (!settings) return null;
+
+  if (error && !order) {
+    return (
+      <div className="container-custom py-8 text-center">
+        <div className="text-6xl mb-4">❌</div>
+        <h1 className="text-2xl font-bold text-red-600 mb-4">{error}</h1>
+        <Link href="/" className="text-blue-600 hover:underline">
+          بازگشت به صفحه اصلی
+        </Link>
+      </div>
+    );
+  }
+
+  if (!order) {
+    return (
+      <div className="container-custom py-8 text-center">
+        <div className="text-6xl mb-4">🔍</div>
+        <h1 className="text-2xl font-bold mb-4">سفارش یافت نشد</h1>
+        <Link href="/" className="text-blue-600 hover:underline">
+          بازگشت به صفحه اصلی
+        </Link>
+      </div>
+    );
+  }
+
+  // اگر سفارش قبلاً تایید شده یا وضعیت مناسب ندارد
+  if (order.status !== 'pending_payment' && order.status !== 'payment_uploaded') {
+    return (
+      <div className="container-custom py-8 text-center">
+        <div className="text-6xl mb-4">ℹ️</div>
+        <h1 className="text-2xl font-bold mb-4">وضعیت سفارش قابل تغییر نیست</h1>
+        <p className="text-gray-500 mb-6">
+          وضعیت فعلی سفارش: {getStatusText(order.status)}
+        </p>
+        <Link href={`/checkout/success?orderId=${order._id}`} className="text-blue-600 hover:underline">
+          مشاهده سفارش
+        </Link>
+      </div>
+    );
+  }
+
+  // اگر پرداخت نقدی است، نیازی به آپلود نیست
+  if (order.paymentMethod === 'cash_on_delivery') {
+    return (
+      <div className="container-custom py-8 text-center">
+        <div className="text-6xl mb-4">💰</div>
+        <h1 className="text-2xl font-bold mb-4">پرداخت نقدی هنگام تحویل</h1>
+        <p className="text-gray-500 mb-6">
+          این سفارش با روش پرداخت نقدی ثبت شده است و نیازی به آپلود رسید ندارد.
+        </p>
+        <Link href={`/checkout/success?orderId=${order._id}`} className="text-blue-600 hover:underline">
+          مشاهده سفارش
+        </Link>
+      </div>
+    );
+  }
+
+  if (success) {
+    return (
+      <div className="container-custom py-8 text-center">
+        <div className="bg-green-100 border border-green-400 text-green-700 p-6 rounded-lg mb-6">
+          <div className="text-6xl mb-4">✅</div>
+          <h1 className="text-2xl font-bold mb-2">اطلاعات پرداخت با موفقیت ارسال شد</h1>
+          <p className="text-gray-600">
+            در حال انتقال به صفحه سفارش...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ============ فرم آپلود ============
+  const isCardToCard = order.paymentMethod === 'card_to_card';
+  const isExchange = order.paymentMethod === 'exchange_hawala';
+  const paymentMethodName = isCardToCard ? 'حواله بانکی (کارت به کارت)' : 'حواله صرافی';
+
   return (
-    <div className="container-custom py-8">
-      <h1 className="text-2xl font-bold mb-6">📝 تکمیل سفارش</h1>
-      
-      {error && (
-        <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4">
-          {error}
-        </div>
-      )}
-      
-      <div className="grid md:grid-cols-2 gap-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="font-bold text-lg mb-4">اطلاعات دریافت کننده</h2>
-          <form onSubmit={handleSubmit}>
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">نام کامل *</label>
-              <input
-                type="text"
-                name="name"
-                required
-                value={customerInfo.name}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">ایمیل *</label>
-              <input
-                type="email"
-                name="email"
-                required
-                value={customerInfo.email}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">شماره تماس *</label>
-              <input
-                type="tel"
-                name="phone"
-                required
-                value={customerInfo.phone}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">ولایت *</label>
-              <select
-                value={selectedProvince}
-                onChange={handleProvinceChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                required
-              >
-                <option value="">انتخاب ولایت</option>
-                {provinces.map(province => (
-                  <option key={province._id} value={province._id}>
-                    {province.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+    <div className="container-custom py-8 max-w-2xl">
+      {/* ============ بازگشت ============ */}
+      <div className="mb-4">
+        <Link href={`/checkout/success?orderId=${order._id}`} className="text-blue-600 hover:underline">
+          ← بازگشت به سفارش
+        </Link>
+      </div>
 
-            {selectedProvince && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium mb-1">ولسوالی *</label>
-                <select
-                  value={customerInfo.district}
-                  onChange={handleDistrictChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                  required
-                >
-                  <option value="">انتخاب ولسوالی</option>
-                  {districts.map(district => (
-                    <option key={district._id} value={district._id}>
-                      {district.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">آدرس دقیق *</label>
-              <textarea
-                name="address"
-                required
-                rows={3}
-                value={customerInfo.address}
-                onChange={handleChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">توضیحات (اختیاری)</label>
-              <textarea
-                name="notes"
-                rows={2}
-                value={customerInfo.notes}
-                onChange={handleChange}
-                placeholder="هر نکته‌ای درباره سفارش خود دارید بنویسید..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-              />
-            </div>
+      <div className="bg-white rounded-lg shadow p-6">
+        <h1 className="text-2xl font-bold mb-2">📤 ارسال اطلاعات پرداخت</h1>
+        <p className="text-gray-500 mb-6">
+          سفارش #{order.orderNumber || order._id.slice(-8).toUpperCase()} - {paymentMethodName}
+        </p>
 
-            {/* روش پرداخت */}
-            <div className="mb-6">
-              <h3 className="font-bold text-lg mb-3">روش پرداخت</h3>
-              
-              <label className={`flex items-start p-3 border rounded-lg mb-3 cursor-pointer ${paymentMethod === 'cash_on_delivery' ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="cash_on_delivery"
-                  checked={paymentMethod === 'cash_on_delivery'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="mt-1 ml-3"
-                />
-                <div>
-                  <div className="font-bold">💰 پرداخت نقدی هنگام تحویل</div>
-                  <div className="text-sm text-gray-500">پرداخت درب منزل هنگام دریافت سفارش</div>
-                </div>
-              </label>
-
-              <label className={`flex items-start p-3 border rounded-lg mb-3 cursor-pointer ${paymentMethod === 'card_to_card' ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="card_to_card"
-                  checked={paymentMethod === 'card_to_card'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="mt-1 ml-3"
-                />
-                <div>
-                  <div className="font-bold">🏦 حواله بانکی (کارت به کارت)</div>
-                  <div className="text-sm text-gray-500">واریز به حساب بانکی و ارسال رسید</div>
-                </div>
-              </label>
-
-              <label className={`flex items-start p-3 border rounded-lg cursor-pointer ${paymentMethod === 'exchange_hawala' ? 'border-green-500 bg-green-50' : 'border-gray-300'}`}>
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="exchange_hawala"
-                  checked={paymentMethod === 'exchange_hawala'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="mt-1 ml-3"
-                />
-                <div>
-                  <div className="font-bold">💱 حواله صرافی</div>
-                  <div className="text-sm text-gray-500">حواله از طریق صرافی‌های معتبر</div>
-                </div>
-              </label>
-            </div>
-          </form>
-        </div>
-        
-        {/* خلاصه سفارش */}
-        <div className="bg-white rounded-lg shadow p-6 h-fit">
-          <h2 className="font-bold text-lg mb-4">خلاصه سفارش</h2>
-          {cart.map(item => (
-            <div key={item._id} className="flex justify-between mb-2 text-sm">
-              <span>{item.name} × {item.quantity}</span>
-              <span>{(item.price * item.quantity).toLocaleString()} افغانی</span>
-            </div>
-          ))}
-          <div className="border-t pt-2 mt-2">
-            <div className="flex justify-between">
-              <span>جمع محصولات:</span>
-              <span>{totalPrice.toLocaleString()} افغانی</span>
-            </div>
-            <div className="flex justify-between">
-              <span>هزینه ارسال:</span>
-              <span>{deliveryFee.toLocaleString()} افغانی</span>
-            </div>
-            <div className="flex justify-between text-lg font-bold border-t pt-2 mt-2">
-              <span>جمع کل:</span>
-              <span className="text-green-600">{total.toLocaleString()} افغانی</span>
+        {error && (
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg mb-4">
+            <div className="flex items-center gap-2">
+              <span>❌</span>
+              <span>{error}</span>
             </div>
           </div>
-          
-          <button
-            onClick={handleSubmit}
-            disabled={loading}
-            className="w-full bg-green-600 text-white py-3 rounded-lg font-bold hover:bg-green-700 transition mt-4 disabled:opacity-50"
-          >
-            {loading ? 'در حال ثبت سفارش...' : '✅ ثبت نهایی سفارش'}
-          </button>
-        </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          {/* ============ اطلاعات سفارش ============ */}
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            <h3 className="font-semibold mb-2">خلاصه سفارش</h3>
+            <div className="space-y-1 text-sm">
+              <p><span className="text-gray-500">تعداد اقلام:</span> {order.items.reduce((sum, i) => sum + i.quantity, 0)}</p>
+              <p><span className="text-gray-500">جمع کل:</span> <span className="font-bold text-green-600">{order.totalAmount.toLocaleString()} افغانی</span></p>
+              <p><span className="text-gray-500">روش پرداخت:</span> {paymentMethodName}</p>
+            </div>
+          </div>
+
+          {/* ============ فرم حواله بانکی ============ */}
+          {isCardToCard && (
+            <div className="space-y-4">
+              <h3 className="font-bold text-lg">اطلاعات حواله بانکی</h3>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  نام بانک <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="bankName"
+                  required
+                  value={formData.bankName}
+                  onChange={handleChange}
+                  placeholder="مثال: بانک ملی افغانستان"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  شماره پیگیری/مرجع <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="referenceNumber"
+                  required
+                  value={formData.referenceNumber}
+                  onChange={handleChange}
+                  placeholder="شماره پیگیری واریز"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  نام واریز کننده <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="senderName"
+                  required
+                  value={formData.senderName}
+                  onChange={handleChange}
+                  placeholder="نام کامل واریز کننده"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                />
+              </div>
+
+              <div className="text-sm text-gray-600 p-3 bg-blue-50 rounded">
+                <p className="font-bold">اطلاعات حساب بانکی فروشنده:</p>
+                <p>بانک: بانک ملی افغانستان</p>
+                <p>شماره حساب: ۱۲۳۴۵۶۷۸۹۰</p>
+                <p>شماره کارت: ۶۲۱۹-۸۶۱۰-۱۲۳۴-۵۶۷۸</p>
+                <p>به نام: فروشگاه افغانستان</p>
+              </div>
+            </div>
+          )}
+
+          {/* ============ فرم حواله صرافی ============ */}
+          {isExchange && (
+            <div className="space-y-4">
+              <h3 className="font-bold text-lg">اطلاعات حواله صرافی</h3>
+              
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  نام صرافی <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="exchangeName"
+                  required
+                  value={formData.exchangeName}
+                  onChange={handleChange}
+                  placeholder="مثال: صرافی حبیب"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  شماره حواله/مرجع <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="referenceNumber"
+                  required
+                  value={formData.referenceNumber}
+                  onChange={handleChange}
+                  placeholder="شماره حواله صرافی"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  نام فرستنده <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="senderName"
+                  required
+                  value={formData.senderName}
+                  onChange={handleChange}
+                  placeholder="نام کامل فرستنده"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
+                  style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* ============ آدرس تصویر رسید (اختیاری) ============ */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-1">
+              آدرس تصویر رسید (اختیاری)
+            </label>
+            <input
+              type="text"
+              name="receiptImage"
+              value={formData.receiptImage}
+              onChange={handleChange}
+              placeholder="https://example.com/receipt.jpg"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
+              style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              می‌توانید آدرس اینترنتی تصویر رسید را وارد کنید
+            </p>
+          </div>
+
+          {/* ============ توضیحات ============ */}
+          <div className="mt-4">
+            <label className="block text-sm font-medium mb-1">
+              توضیحات (اختیاری)
+            </label>
+            <textarea
+              name="notes"
+              rows={3}
+              value={formData.notes}
+              onChange={handleChange}
+              placeholder="هر نکته‌ای درباره پرداخت خود دارید بنویسید..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2"
+              style={{ focusRingColor: settings?.primaryColor || '#e53e3e' }}
+            />
+          </div>
+
+          {/* ============ دکمه‌ها ============ */}
+          <div className="flex gap-3 mt-6">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 text-white py-2 rounded-lg transition disabled:opacity-50 hover:opacity-90"
+              style={{ backgroundColor: settings?.primaryColor || '#e53e3e' }}
+            >
+              {submitting ? '⏳ در حال ارسال...' : '📤 ارسال اطلاعات پرداخت'}
+            </button>
+            <Link
+              href={`/checkout/success?orderId=${order._id}`}
+              className="flex-1 text-center bg-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-400 transition"
+            >
+              انصراف
+            </Link>
+          </div>
+        </form>
       </div>
     </div>
   );
+}
+
+// ============ تابع کمکی وضعیت ============
+function getStatusText(status: string) {
+  const statusMap: { [key: string]: string } = {
+    pending_payment: 'در انتظار پرداخت',
+    payment_uploaded: 'رسید ارسال شده',
+    payment_verified: 'پرداخت تایید شده',
+    processing: 'در حال پردازش',
+    shipped: 'ارسال شده',
+    delivered: 'تحویل داده شده',
+    cancelled: 'لغو شده'
+  };
+  return statusMap[status] || status;
 }

@@ -41,7 +41,7 @@ export default function NewBanner() {
     setLoading(true);
 
     const token = localStorage.getItem('token');
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://lightcyan-wolf-542317.hostingersite.com';
     
     try {
       const res = await fetch(`${apiUrl}/api/banners`, {

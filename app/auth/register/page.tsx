@@ -1,8 +1,10 @@
+// app/auth/register/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { api } from '@/services/api';
 
 interface Province {
   _id: string;
@@ -38,22 +40,16 @@ export default function RegisterPage() {
     address: ''
   });
 
-  // دریافت ولایت‌ها
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
-    
-    fetch(`${apiUrl}/api/locations/provinces`)
+    api.locations.getProvinces()
       .then(res => res.json())
       .then(data => setProvinces(data))
       .catch(err => console.error('Error fetching provinces:', err));
   }, []);
 
-  // دریافت ولسوالی‌ها بر اساس ولایت انتخاب شده
   useEffect(() => {
     if (selectedProvinceId) {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
-      
-      fetch(`${apiUrl}/api/locations/districts/${selectedProvinceId}`)
+      api.locations.getDistricts(selectedProvinceId)
         .then(res => res.json())
         .then(data => setDistricts(data))
         .catch(err => console.error('Error fetching districts:', err));
@@ -66,7 +62,7 @@ export default function RegisterPage() {
     const provinceId = e.target.value;
     const province = provinces.find(p => p._id === provinceId);
     setSelectedProvinceId(provinceId);
-    setSelectedDistrictId(''); //重置 ولسوالی
+    setSelectedDistrictId('');
     setFormData({
       ...formData,
       province: province?.name || '',
@@ -86,10 +82,7 @@ export default function RegisterPage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
     setError('');
   };
 
@@ -110,22 +103,16 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
-      
-      const res = await fetch(`${apiUrl}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          password: formData.password,
-          province: formData.province,
-          provinceId: formData.provinceId,
-          district: formData.district,
-          address: formData.address,
-          role: 'customer'
-        })
+      const res = await api.auth.register({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        province: formData.province,
+        provinceId: formData.provinceId,
+        district: formData.district,
+        address: formData.address,
+        role: 'customer'
       });
 
       const data = await res.json();
@@ -151,9 +138,7 @@ export default function RegisterPage() {
         <h1 className="text-2xl font-bold text-center mb-6">📝 ثبت نام</h1>
         
         {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-center">
-            {error}
-          </div>
+          <div className="bg-red-100 text-red-700 p-3 rounded-lg mb-4 text-center">{error}</div>
         )}
         
         <form onSubmit={handleSubmit}>
