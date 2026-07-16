@@ -26,28 +26,29 @@ interface Banner {
   buttonLink?: string;
 }
 
-const categoriesList = [
-  { id: 1, name: 'قطعات و تعمیرات موبایل', icon: '🔧' },
-  { id: 2, name: 'باتری و شارژ', icon: '🔋' },
-  { id: 3, name: 'محافظ و جانبی', icon: '🛡️' },
-  { id: 4, name: 'صدا و تصویر', icon: '🎧' },
-  { id: 5, name: 'سایر', icon: '📦' },
-];
+interface Category {
+  id: number;
+  name: string;
+  icon: string;
+  is_active: boolean;
+}
 
 export default function Home() {
   const settings = useSettings();
   const [products, setProducts] = useState<Product[]>([]);
   const [banners, setBanners] = useState<Banner[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('همه');
   const [currentBannerSlide, setCurrentBannerSlide] = useState(0);
   const [currentProductSlide, setCurrentProductSlide] = useState(0);
 
-  // ============ دریافت محصولات و بنرها ============
+  // ============ دریافت محصولات، بنرها و دسته‌بندی‌ها ============
   useEffect(() => {
     const fetchData = async () => {
       try {
+        // دریافت محصولات
         const productsRes = await api.products.getAll();
         const productsData = await productsRes.json();
         if (Array.isArray(productsData)) {
@@ -56,6 +57,7 @@ export default function Home() {
           setProducts([]);
         }
 
+        // دریافت بنرها
         const bannersRes = await api.banners.getAll();
         const bannersData = await bannersRes.json();
         if (bannersData && bannersData.length > 0) {
@@ -68,9 +70,21 @@ export default function Home() {
             { _id: '4', title: 'پرداخت در محل', description: 'امکان پرداخت هنگام تحویل', image: '💰', bgColor: '#8b5cf6' },
           ]);
         }
+
+        // دریافت دسته‌بندی‌ها
+        const categoriesRes = await api.categories.getAll();
+        const categoriesData = await categoriesRes.json();
+        if (Array.isArray(categoriesData)) {
+          // فقط دسته‌بندی‌های فعال را نمایش بده
+          const activeCategories = categoriesData.filter((cat: Category) => cat.is_active !== false);
+          setCategories(activeCategories);
+        } else {
+          setCategories([]);
+        }
       } catch (error) {
         console.error('Error fetching data:', error);
         setProducts([]);
+        setCategories([]);
         setBanners([
           { _id: '1', title: 'تخفیف ویژه تا ۵۰٪', description: 'بهترین محصولات با بهترین قیمت', image: '🎁', bgColor: '#3b82f6' },
           { _id: '2', title: 'ارسال رایگان', description: 'برای خرید بالای ۱۰۰۰۰ افغانی', image: '🚚', bgColor: '#10b981' },
@@ -158,6 +172,15 @@ export default function Home() {
   const primaryColor = settings?.primaryColor || '#e53e3e';
   const secondaryColor = settings?.secondaryColor || '#3182ce';
 
+  // دسته‌بندی‌های پیش‌فرض در صورت عدم دریافت از دیتابیس
+  const displayCategories = categories.length > 0 ? categories : [
+    { id: 1, name: 'قطعات و تعمیرات موبایل', icon: '🔧', is_active: true },
+    { id: 2, name: 'باتری و شارژ', icon: '🔋', is_active: true },
+    { id: 3, name: 'محافظ و جانبی', icon: '🛡️', is_active: true },
+    { id: 4, name: 'صدا و تصویر', icon: '🎧', is_active: true },
+    { id: 5, name: 'سایر', icon: '📦', is_active: true },
+  ];
+
   return (
     <div>
       <main className="container-custom py-8">
@@ -240,8 +263,7 @@ export default function Home() {
               className="w-full px-5 py-3 pr-12 border-2 rounded-full focus:outline-none focus:ring-2 transition"
               style={{
                 borderColor: primaryColor,
-                '--tw-ring-color': primaryColor,
-              } as React.CSSProperties}
+              }}
             />
             <span className="absolute left-3 top-3 text-gray-400 text-xl">🔍</span>
             {searchTerm && (
@@ -269,7 +291,7 @@ export default function Home() {
             >
               همه محصولات
             </button>
-            {categoriesList.map((cat) => (
+            {displayCategories.map((cat) => (
               <button
                 key={cat.id}
                 onClick={() => setSelectedCategory(cat.name)}
@@ -280,7 +302,7 @@ export default function Home() {
                 }`}
                 style={selectedCategory === cat.name ? { backgroundColor: primaryColor } : {}}
               >
-                <span>{cat.icon}</span>
+                <span>{cat.icon || '📦'}</span>
                 <span>{cat.name}</span>
               </button>
             ))}
@@ -341,7 +363,7 @@ export default function Home() {
                       )}
                     </div>
                     <div className="p-4 flex flex-col flex-grow">
-                      <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 min-h-[48px] group-hover:text-blue-600 transition-colors">
+                      <h3 className="font-bold text-gray-800 mb-2 line-clamp-2 min-h-12 group-hover:text-blue-600 transition-colors">
                         {product?.name || 'بدون نام'}
                       </h3>
                       <div className="text-xl font-bold text-green-600 mb-2">

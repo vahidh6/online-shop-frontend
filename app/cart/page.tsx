@@ -1,52 +1,31 @@
+// app/cart/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
+import { api } from '@/services/api';
+import { useSettings } from '@/context/SettingsContext';
 
 interface CartItem {
-  _id: string;
+  id: number;        // ✅ عددی
   name: string;
   price: number;
   quantity: number;
   image?: string;
 }
 
-interface Settings {
-  deliveryFeeKabul: number;
-  deliveryFeeOther: number;
-  freeDeliveryThreshold: number;
-  primaryColor: string;
-  secondaryColor: string;
-}
-
 export default function CartPage() {
   const router = useRouter();
+  const settings = useSettings();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [userProvince, setUserProvince] = useState<string>('کابل');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [settings, setSettings] = useState<Settings>({
-    deliveryFeeKabul: 50000,
-    deliveryFeeOther: 100000,
-    freeDeliveryThreshold: 0,
-    primaryColor: '#e53e3e',
-    secondaryColor: '#3182ce'
-  });
 
-  // دریافت تنظیمات و اطلاعات کاربر
+  // ============ دریافت اطلاعات کاربر ============
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://online-shop-backend-production-27a8.up.railway.app';
-    
-    // دریافت تنظیمات
-    fetch(`${apiUrl}/api/settings`)
-      .then(res => res.json())
-      .then(data => {
-        if (data) setSettings(data);
-      })
-      .catch(err => console.error('Error fetching settings:', err));
-
     // بررسی لاگین و دریافت استان کاربر
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
@@ -62,11 +41,25 @@ export default function CartPage() {
     }
   }, []);
 
-  // دریافت سبد خرید
+  // ============ دریافت سبد خرید ============
   useEffect(() => {
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
-      setCart(JSON.parse(savedCart));
+      try {
+        const parsedCart = JSON.parse(savedCart);
+        // ✅ تبدیل _id به id برای هماهنگی با API
+        const formattedCart = parsedCart.map((item: any) => ({
+          id: item._id || item.id,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image
+        }));
+        setCart(formattedCart);
+      } catch (e) {
+        console.error('Error parsing cart:', e);
+        setCart([]);
+      }
     }
     setLoading(false);
   }, []);
@@ -76,28 +69,32 @@ export default function CartPage() {
     localStorage.setItem('cart', JSON.stringify(newCart));
   };
 
-  const updateQuantity = (id: string, quantity: number) => {
+  const updateQuantity = (id: number, quantity: number) => {
     if (quantity <= 0) {
       removeItem(id);
       return;
     }
     const newCart = cart.map(item => 
-      item._id === id ? { ...item, quantity } : item
+      item.id === id ? { ...item, quantity } : item
     );
     saveCart(newCart);
   };
 
-  const removeItem = (id: string) => {
-    const newCart = cart.filter(item => item._id !== id);
+  const removeItem = (id: number) => {
+    const newCart = cart.filter(item => item.id !== id);
     saveCart(newCart);
   };
 
-  // محاسبه هزینه ارسال بر اساس استان
+  // ============ محاسبه قیمت‌ها ============
+  const deliveryFeeKabul = settings?.deliveryFeeKabul || 50000;
+  const deliveryFeeOther = settings?.deliveryFeeOther || 100000;
+  const freeDeliveryThreshold = settings?.freeDeliveryThreshold || 0;
+
   const getDeliveryFee = () => {
     if (userProvince === 'کابل') {
-      return settings.deliveryFeeKabul;
+      return deliveryFeeKabul;
     }
-    return settings.deliveryFeeOther;
+    return deliveryFeeOther;
   };
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -105,8 +102,18 @@ export default function CartPage() {
   const totalPrice = subtotal + deliveryFee;
   const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  // بررسی ارسال رایگان
-  const isFreeDelivery = settings.freeDeliveryThreshold > 0 && subtotal >= settings.freeDeliveryThreshold;
+  const isFreeDelivery = freeDeliveryThreshold > 0 && subtotal >= freeDeliveryThreshold;
+  const finalDeliveryFee = isFreeDelivery ? 0 : deliveryFee;
+  const finalTotal = isFreeDelivery ? subtotal : totalPrice;
+
+  // ============ رندر ============
+  if (!settings) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -116,10 +123,11 @@ export default function CartPage() {
     );
   }
 
+  const primaryColor = settings?.primaryColor || '#e53e3e';
+
   if (cart.length === 0) {
     return (
       <div className="container-custom py-8 text-center">
-        {/* دکمه برگشت به صفحه اصلی */}
         <div className="mb-6 text-right">
           <Link 
             href="/" 
@@ -137,7 +145,7 @@ export default function CartPage() {
           <Link 
             href="/products" 
             className="inline-block text-white px-6 py-3 rounded-lg hover:opacity-90 transition"
-            style={{ backgroundColor: settings.primaryColor }}
+            style={{ backgroundColor: primaryColor }}
           >
             شروع خرید
           </Link>
@@ -148,7 +156,6 @@ export default function CartPage() {
 
   return (
     <div className="container-custom py-8">
-      {/* دکمه برگشت به صفحه اصلی */}
       <div className="mb-6">
         <Link 
           href="/" 
@@ -164,7 +171,7 @@ export default function CartPage() {
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2">
           {cart.map(item => (
-            <div key={item._id} className="bg-white rounded-lg shadow p-4 mb-4 flex flex-wrap gap-4 items-center justify-between">
+            <div key={item.id} className="bg-white rounded-lg shadow p-4 mb-4 flex flex-wrap gap-4 items-center justify-between">
               <div className="flex items-center gap-4 flex-1">
                 {item.image ? (
                   <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded" />
@@ -180,14 +187,14 @@ export default function CartPage() {
               </div>
               <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => updateQuantity(item._id, item.quantity - 1)}
+                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
                   className="w-8 h-8 bg-gray-200 rounded-full hover:bg-gray-300 transition"
                 >
                   -
                 </button>
                 <span className="w-8 text-center">{item.quantity}</span>
                 <button 
-                  onClick={() => updateQuantity(item._id, item.quantity + 1)}
+                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
                   className="w-8 h-8 bg-gray-200 rounded-full hover:bg-gray-300 transition"
                 >
                   +
@@ -196,7 +203,7 @@ export default function CartPage() {
               <div className="min-w-[120px] text-right">
                 <p className="font-bold text-lg">{(item.price * item.quantity).toLocaleString()} افغانی</p>
                 <button 
-                  onClick={() => removeItem(item._id)}
+                  onClick={() => removeItem(item.id)}
                   className="text-red-500 text-sm hover:underline"
                 >
                   حذف
@@ -224,7 +231,7 @@ export default function CartPage() {
                 {isFreeDelivery ? (
                   <span className="text-green-600">رایگان</span>
                 ) : (
-                  <span>{deliveryFee.toLocaleString()} افغانی</span>
+                  <span>{finalDeliveryFee.toLocaleString()} افغانی</span>
                 )}
               </div>
             </div>
@@ -240,9 +247,9 @@ export default function CartPage() {
                 استان شما: {userProvince}
               </div>
             )}
-            {!isFreeDelivery && settings.freeDeliveryThreshold > 0 && (
+            {!isFreeDelivery && freeDeliveryThreshold > 0 && (
               <div className="text-xs text-blue-600">
-                {Math.max(0, settings.freeDeliveryThreshold - subtotal).toLocaleString()} افغانی دیگر برای ارسال رایگان
+                {Math.max(0, freeDeliveryThreshold - subtotal).toLocaleString()} افغانی دیگر برای ارسال رایگان
               </div>
             )}
           </div>
@@ -251,7 +258,7 @@ export default function CartPage() {
             <div className="flex justify-between text-xl font-bold">
               <span>جمع کل:</span>
               <span className="text-green-600">
-                {(isFreeDelivery ? subtotal : totalPrice).toLocaleString()} افغانی
+                {finalTotal.toLocaleString()} افغانی
               </span>
             </div>
           </div>
@@ -259,7 +266,7 @@ export default function CartPage() {
           <Link 
             href="/checkout" 
             className="block text-center text-white py-3 rounded-lg mt-4 transition hover:opacity-90"
-            style={{ backgroundColor: settings.primaryColor }}
+            style={{ backgroundColor: primaryColor }}
           >
             ادامه فرآیند خرید
           </Link>
